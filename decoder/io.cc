@@ -33,7 +33,7 @@ bool IsToken(const char *token) {
     if (token == NULL || *token == END_OF_STRING)
         return false;
     const char *token_ptr = token;
-    while (token_ptr != END_OF_STRING) {
+    while (*token_ptr != END_OF_STRING) {
         if (isspace(*token_ptr)) return false;
         token_ptr++;
     }
@@ -58,7 +58,7 @@ void ExpectToken(std::istream &is, const char *token) {
     is >> read_token; is.get();
     ASSERT(!is.fail() && "ReadToken Failed!");
     if (strcmp(read_token.c_str(), token) != 0)
-        LOG_ERR << "Expect token \'" << token << "\', but got " << read_token;
+        LOG_FAIL << "Expect token \'" << token << "\', but got " << read_token;
 }
 
 void ExpectToken(std::istream &is, const std::string& token) {
@@ -67,7 +67,7 @@ void ExpectToken(std::istream &is, const std::string& token) {
     is >> read_token; is.get();
     ASSERT(!is.fail() && "ReadToken Failed!");
     if (strcmp(read_token.c_str(), token.c_str()) != 0)
-        LOG_ERR << "Expect token \'" << token << "\', but got " << read_token;
+        LOG_FAIL << "Expect token \'" << token << "\', but got " << read_token;
 }
 
 template

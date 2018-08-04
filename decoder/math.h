@@ -6,7 +6,7 @@
 #include <cmath>
 #include <algorithm>
 
-#include "type.h"
+#include "decoder/type.h"
 
 // #include "blas-wrapper.h"
 

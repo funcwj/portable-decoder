@@ -7,7 +7,7 @@
 
 #include <vector>
 
-#include "type.h"
+#include "decoder/type.h"
 
 struct Arc {
     Label ilabel, olabel;

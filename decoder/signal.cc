@@ -56,7 +56,7 @@ void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins,
                         std::vector<std::vector<Float32> > *weights) {
     if (low_freq < 0 || low_freq >= center_freq || high_freq < 0 
         || high_freq > center_freq || high_freq <= low_freq)
-        LOG_ERR << "Bad frequency range: [" << low_freq << ", " 
+        LOG_FAIL << "Bad frequency range: [" << low_freq << ", " 
                 << high_freq << "] with center frequency = "
                 << center_freq;
 
@@ -167,7 +167,8 @@ void FbankComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Floa
     // Weight spectrogram with mel coefficients
     for (Int32 f = 0; f < num_bins_; f++) {
         ASSERT(mel_coeff_[f].size() == num_fft_bins);
-        Float32 *weights = mel_coeff_[f].data, mel_energy;
+        const Float32 *weights = mel_coeff_[f].data();
+        Float32 mel_energy = 0;
         // Blas
         // Float32 mel_energy = VdotV(weights, spectrum_cache_, num_fft_bins);
         for (Int32 i = 0; i < num_fft_bins; i++)

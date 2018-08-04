@@ -41,7 +41,7 @@ void SimpleFst::Read(std::istream &is) {
         }
     }
     if (check_num_arcs != num_arcs)
-        LOG_ERR << "Check number of arcs failed, " << check_num_arcs << " vs " << num_arcs;
+        LOG_FAIL << "Check number of arcs failed, " << check_num_arcs << " vs " << num_arcs;
 }
 
 // start->num_states->num_arcs
@@ -66,8 +66,8 @@ void SimpleFst::Write(std::ostream &os) {
     }
     Int32 end_shift = os.tellp();
     if (check_num_states != NumStates())
-        LOG_ERR << "Number of state in current FST do not equal with values return "
-                << "from NumStates(), " << check_num_states << " vs" << NumStates();
+        LOG_FAIL << "Number of state in current FST do not equal with values return "
+                 << "from NumStates(), " << check_num_states << " vs" << NumStates();
     os.seekp(arc_shift);
     WriteBinaryBasicType(os, num_arcs);
     os.seekp(end_shift);

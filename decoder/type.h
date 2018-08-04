@@ -4,7 +4,8 @@
 #define TYPE_H
 
 #include <cstdint>
-#include "logger.h"
+
+#include "decoder/logger.h"
 
 using Float32 = float;
 using Float64 = double;

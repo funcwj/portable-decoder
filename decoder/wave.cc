@@ -9,7 +9,7 @@ bool CheckHeader(WaveHeader &header, Int32 byte_per_sample) {
         return false;
     if ((header.byte_rate != header.sample_rate * header.num_channels * byte_per_sample)
         || (header.block_align != header.num_channels * byte_per_sample) 
-        || (header.format_size - 16 < 0))
+        || (header.format_size < 16))
         return false;
     return true;
 }
@@ -29,7 +29,7 @@ WaveHeader GenWavHeader(Int32 num_samples, Int32 num_channels,
         static_cast<UInt16>(byte_per_sample * 8)
     };
     if (!CheckHeader(header, byte_per_sample))
-        LOG_ERR << "Check generated wave header failed, please check GenWavHeader()";
+        LOG_FAIL << "Check generated wave header failed, please check GenWavHeader()";
     return header;
 }
 
@@ -37,7 +37,7 @@ void Wave::Read(std::istream &is) {
     ReadBinary(is, reinterpret_cast<char*>(&header_), sizeof(header_));
     byte_per_sample_ = header_.bits_per_sample / 8;
     if(!CheckHeader(header_, byte_per_sample_))
-        LOG_ERR << "Check wave header failed";
+        LOG_FAIL << "Check wave header failed";
     // Skip other parameters between format part and data part
     is.seekg(header_.format_size - 16, std::ios::cur);
     char data_id[4];
@@ -49,7 +49,7 @@ void Wave::Read(std::istream &is) {
     // check num_samples_ here
     data_ = new Float32[num_samples_];
     if (byte_per_sample_ != 2)
-        LOG_ERR << "Now only support for Int16 encode, get int" << header_.bits_per_sample;
+        LOG_FAIL << "Now only support for Int16 encode, get int" << header_.bits_per_sample;
     Int16 *cache = new Int16[num_samples_];
     ReadBinary(is, reinterpret_cast<char*>(cache), sizeof(Int16) * num_samples_);
     for (Int32 i = 0; i < num_samples_; i++)
@@ -64,7 +64,7 @@ void Wave::Read(std::istream &is) {
 void Wave::Write(std::ostream &os) {
     // check header
     if(!CheckHeader(header_, byte_per_sample_))
-        LOG_ERR << "Check wave header failed, could not dump to disk";
+        LOG_FAIL << "Check wave header failed, could not dump to disk";
     Int32 num_bytes  = num_samples_ * byte_per_sample_;
     const char *data_id = "data";
     WriteBinary(os, reinterpret_cast<char*>(&header_), sizeof(header_));

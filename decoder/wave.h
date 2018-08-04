@@ -5,10 +5,7 @@
 #ifndef WAVE_H
 #define WAVE_H
 
-
-#include "type.h"
-#include "math.h"
-#include "io.h"
+#include "decoder/common.h"
 
 struct WaveHeader {
     char chunk_id[4];       // "RIFF"

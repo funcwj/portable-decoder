@@ -27,7 +27,7 @@ public:
         prefix << TimeNow() << " " << type_ << "(" 
             << function_ << "():" << file_ << ":" << line_ << ")";
         std::cerr << prefix.str().c_str() << " " << msg.c_str() << std::endl;
-        if (type_ == "ASSERT" || type_ == "ERROR")
+        if (type_ == "ASSERT" || type_ == "FAIL")
             abort();
     }
 
@@ -50,7 +50,7 @@ private:
         return path + pos + 1;
     }
 
-    const char* TimeNow() {
+    const std::string TimeNow() {
         std::ostringstream time_format;
         time_t time_now = time(0);
         tm *tm = localtime(&time_now);
@@ -58,14 +58,14 @@ private:
                     << 1 + tm->tm_mon << "/" << tm->tm_mday
                     << " " << tm->tm_hour << ":" << tm->tm_min
                     << ":" << tm->tm_sec;
-        return time_format.str().c_str();
+        return time_format.str();
     }
 };
 
 
 #define LOG_WARN   Logger("WARN", __FUNCTION__, __FILE__, __LINE__).Stream()
 #define LOG_INFO   Logger("INFO", __FUNCTION__, __FILE__, __LINE__).Stream()
-#define LOG_ERR    Logger("ERROR", __FUNCTION__, __FILE__, __LINE__).Stream()
+#define LOG_FAIL   Logger("FAIL", __FUNCTION__, __FILE__, __LINE__).Stream()
 
 #define ASSERT(cond) do { if (cond) (void)0; else \
     Logger("ASSERT", __FUNCTION__, __FILE__, __LINE__).Stream() \

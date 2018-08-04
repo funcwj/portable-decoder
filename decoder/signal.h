@@ -3,10 +3,8 @@
 #ifndef SIGNAL_H
 #define SIGNAL_H
 
-#include <cmath>
-#include <cstring>
-
-#include "fft-computer.h"
+#include "decoder/common.h"
+#include "decoder/fft-computer.h"
 
 void Preemphasize(Float32 *frame, Int32 frame_length, Float32 preemph_coeff);
 
@@ -197,7 +195,7 @@ protected:
     Float32 *spectrum_cache_;
     Int32 num_bins_, low_freq_, high_freq_;
     bool apply_pow_;
-    std::vector<std::vector<Float32>> mel_coeff_;
+    std::vector<std::vector<Float32> > mel_coeff_;
 };
 
 

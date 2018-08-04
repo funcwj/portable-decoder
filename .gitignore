@@ -2,3 +2,6 @@
 .vscode/
 *.exe
 build/
+bin/
+lib/
+test/

@@ -6,13 +6,7 @@
 #ifndef FFT_COMPUTER_H
 #define FFT_COMPUTER_H
 
-#include <cmath>
-#include <cstring>
-#include <iostream>
-#include <algorithm>
-
-#include "math.h"
-#include "logger.h"
+#include "decoder/common.h"
 
 // Class for FFT computation
 

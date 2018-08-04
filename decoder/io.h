@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "type.h"
+#include "decoder/type.h"
 
 
 void WriteBinary(std::ostream &os, const char *ptr, Int32 num_bytes);
