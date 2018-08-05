@@ -33,7 +33,8 @@ public:
     // Wave wave;
     // ReadWave("demo.wav", &wave);
     Wave(): data_(NULL), num_channels_(-1), num_samples_(-1), 
-        sample_rate_(-1), byte_per_sample_(-1) { }
+        sample_rate_(-1), byte_per_sample_(-1), 
+        hold_memory_(false) { }
 
     // egs:
     // Wave wave(data, 23456);
@@ -44,10 +45,11 @@ public:
         // default Int16
         byte_per_sample_ = 2;
         header_ = GenWavHeader(num_samples, num_channels, sample_rate, byte_per_sample_);
+        hold_memory_ = false;
     }
 
     ~Wave() { 
-        if (data_)
+        if (data_ && hold_memory_)
             delete[] data_;
     }
 
@@ -68,7 +70,7 @@ private:
     Int32 byte_per_sample_;
     Float32 *data_;
     WaveHeader header_;
-
+    Bool hold_memory_;
 };
 
 

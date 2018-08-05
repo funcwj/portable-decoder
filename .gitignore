@@ -1,6 +1,9 @@
 *.wav
 .vscode/
 *.exe
+*.fst
 build/
 bin/
 lib/
+kaldi-tools/build
+kaldi-tools/*.fst

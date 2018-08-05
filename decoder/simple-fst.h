@@ -32,11 +32,11 @@ public:
     
     const Arc *Arcs() const { return !arcs_.empty() ? &arcs_[0] : nullptr; }
 
-    Int32 NumArcs() const { return arcs_.size(); }
+    UInt64 NumArcs() const { return arcs_.size(); }
 
-    Int32 NumInputEps() const { return niepsilons_; }
+    UInt64 NumInputEps() const { return niepsilons_; }
 
-    Int32 NumOutputEps() const { return noepsilons_; }
+    UInt64 NumOutputEps() const { return noepsilons_; }
 
     void SetFinal(Weight weight) { final_ = weight; } 
 
@@ -72,7 +72,7 @@ public:
 
 private:
     Weight final_;
-    Int32 niepsilons_, noepsilons_;
+    UInt64 niepsilons_, noepsilons_;
     std::vector<Arc> arcs_;
 };
 
@@ -95,9 +95,9 @@ public:
 
     Weight Final(StateId state) const { return states_[state]->Final(); }
 
-    Int32 NumStates() const { return states_.size(); }
+    UInt64 NumStates() const { return states_.size(); }
 
-    Int32 NumArcs(StateId state) const { return states_[state]->NumArcs(); }
+    UInt64 NumArcs(StateId state) const { return states_[state]->NumArcs(); }
 
     void SetStart(StateId state) { start_ = state; }
 
@@ -124,9 +124,9 @@ public:
         return states_.size() - 1;
     }
 
-    Int32 NumInputEpsilons(StateId state) const { return GetState(state)->NumInputEps(); }
+    UInt64 NumInputEpsilons(StateId state) const { return GetState(state)->NumInputEps(); }
 
-    Int32 NumOutputEpsilons(StateId state) const { return GetState(state)->NumOutputEps(); }
+    UInt64 NumOutputEpsilons(StateId state) const { return GetState(state)->NumOutputEps(); }
 
 private:
     StateId start_;
@@ -179,7 +179,7 @@ public:
     const Arc& Value() { return arc_ptr_[cur_arc_]; }
     
 private:
-    Int32 cur_arc_, num_arcs_;
+    UInt64 cur_arc_, num_arcs_;
     const Arc *arc_ptr_;
 };
 

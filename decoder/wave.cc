@@ -57,6 +57,7 @@ void Wave::Read(std::istream &is) {
     delete[] cache;
     num_channels_ = header_.num_channels;
     sample_rate_ = header_.sample_rate;
+    hold_memory_ = true;
     ASSERT(header_.chunk_size == header_.format_size + 20 + num_bytes);
 }
 
@@ -87,11 +88,11 @@ void Wave::Write(std::ostream &os) {
 void ReadWave(std::string filename, Wave *wave) {
     std::fstream fs(filename.c_str(), std::ios::binary | std::ios::in);
     ASSERT(wave);
-    wave->Read(fs); fs.close();
+    wave->Read(fs);
 }
 
 
 void WriteWave(std::string filename, Wave &wave) {
     std::fstream fs(filename.c_str(), std::ios::binary | std::ios::out);
-    wave.Write(fs); fs.close();
+    wave.Write(fs);
 }

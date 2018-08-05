@@ -20,6 +20,7 @@ using UInt16 = uint16_t;
 using UInt32 = uint32_t;
 using UInt64 = uint64_t;
 
+using Bool = bool;
 using Weight    = float;
 using Label     = int32_t;
 using StateId   = int32_t;
