@@ -4,10 +4,25 @@
 #include "util/common-utils.h"
 #include "fstext/fstext-lib.h"
 
+using namespace kaldi;
+
+struct SimpleArc {
+    int32 ilabel, olabel;
+    BaseFloat weight;
+    int32 nextstate;
+
+    SimpleArc(const fst::StdArc &arc): ilabel(arc.ilabel), olabel(arc.olabel),
+                                weight(arc.weight.Value()), nextstate(arc.nextstate) { }
+}; 
+
+void WriteBinaryArc(std::ostream &os, const SimpleArc &arc) {
+    char num_bytes = sizeof(SimpleArc);
+    os.write(reinterpret_cast<const char*>(&num_bytes), 1);
+    os.write(reinterpret_cast<const char*>(&arc), num_bytes);
+}
 
 int main(int argc, char const *argv[]) {
     try {
-        using namespace kaldi;
         using namespace fst;
 
         const char *usage =
@@ -63,12 +78,8 @@ int main(int argc, char const *argv[]) {
             for (fst::ArcIterator<fst::Fst<fst::StdArc> > aiter(*decode_fst, state);
                 !aiter.Done(); aiter.Next()) {
                 const fst::StdArc &arc = aiter.Value();
-                BaseFloat graph_cost = arc.weight.Value();
-                // int32/float
-                WriteBasicType(os, true, arc.ilabel);
-                WriteBasicType(os, true, arc.olabel);
-                WriteBasicType(os, true, graph_cost);
-                WriteBasicType(os, true, arc.nextstate);
+                SimpleArc simple_arc(arc);
+                WriteBinaryArc(os, simple_arc);
             }
         }
         delete decode_fst;

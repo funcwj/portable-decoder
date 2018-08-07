@@ -15,9 +15,9 @@ void ReadBinary(std::istream &is, char *ptr, Int32 num_bytes) {
 
 template<class T> 
 void ReadBinaryBasicType(std::istream &is, T *t) {
-    char c = is.peek();
-    if (abs(c) != sizeof(*t)) {
-        LOG_FAIL << "Expect " << sizeof(*t) << " bytes, but get " << static_cast<Int32>(c);
+    char num_bytes = is.peek();
+    if (abs(num_bytes) != sizeof(*t)) {
+        LOG_FAIL << "Expect " << sizeof(*t) << " bytes, but get " << static_cast<Int32>(num_bytes);
     }
     is.get(); 
     ReadBinary(is, reinterpret_cast<char*>(t), sizeof(*t));
@@ -26,8 +26,8 @@ void ReadBinaryBasicType(std::istream &is, T *t) {
 
 template<class T> 
 void WriteBinaryBasicType(std::ostream &os, T t) {
-    char c = sizeof(t);
-    os.put(c); 
+    char num_bytes = sizeof(t);
+    os.put(num_bytes); 
     WriteBinary(os, reinterpret_cast<const char*>(&t), sizeof(t));
     ASSERT(!os.fail() && "WriteBinaryBasicType Failed");
 }

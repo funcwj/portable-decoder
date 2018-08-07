@@ -91,15 +91,23 @@ void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins,
     }
 }
 
-// Frame chunk of samples
-Int32 FrameSplitter::Frame(Float32 *signal, Int32 num_samps, Float32 *frames, Int32 stride) {
-    ASSERT(stride >= frame_length_);
-    Int32 num_frames = NumFrames(num_samps);
-    for (Int32 t = 0; t < num_frames; t++) {
-        FrameForIndex(signal, num_samps, t, frames + stride * t, NULL);
-    }
+template<class Computer>
+Int32 ComputeFeature(Computer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride) {
+    ASSERT(computer.FeatureDim() <= stride);
+    Int32 num_frames = computer.NumFrames(num_samps);
+    for (Int32 t = 0; t < num_frames; t++)
+        computer.ComputeFrame(signal, num_samps, t, addr + t * stride);
     return num_frames;
 }
+
+
+template
+Int32 ComputeFeature(SpectrogramComputer &computer, Float32 *signal, Int32 num_samps, 
+                        Float32 *addr, Int32 stride);
+
+template
+Int32 ComputeFeature(FbankComputer &computer, Float32 *signal, Int32 num_samps, 
+                        Float32 *addr, Int32 stride);
 
 /*
     1) Remove DC
@@ -132,7 +140,7 @@ void FrameSplitter::FrameForIndex(Float32 *signal, Int32 num_samps, Int32 index,
 }
 
 void SpectrogramComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *spectrum_addr) {
-    Int32 num_frames = splitter->NumFrames(num_frames);
+    Int32 num_frames = splitter->NumFrames(num_samps);
     Float32 raw_energy;
     ASSERT(t < num_frames);
     // SetZero for padding windows
@@ -147,17 +155,6 @@ void SpectrogramComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t
     if (use_log_raw_energy_)
         spectrum_addr[0] = LogFloat32(raw_energy);
 }
-
-Int32 SpectrogramComputer::Compute(Float32 *signal, Int32 num_samps, 
-                                   Float32 *spectrogram, Int32 stride) {
-    ASSERT(FeatureDim() <= stride);
-    Int32 num_frames = splitter->NumFrames(num_frames);
-    for (Int32 t = 0; t < num_frames; t++) {
-        ComputeFrame(signal, num_samps, t, spectrogram + t * stride);
-    }
-    return num_frames;
-}
-
 
 void FbankComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *fbank_addr) {
     Int32 num_fft_bins = spectrogram_computer_->FeatureDim();
@@ -175,16 +172,6 @@ void FbankComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Floa
             mel_energy += weights[i] * spectrum_cache_[i];
         fbank_addr[f] = LogFloat32(mel_energy);
     }
-}
-
-
-Int32 FbankComputer::Compute(Float32 *signal, Int32 num_samps, Float32 *fbank, Int32 stride) {
-    ASSERT(FeatureDim() <= stride);
-    Int32 num_frames = spectrogram_computer_->NumFrames(num_frames);
-    for (Int32 t = 0; t < num_frames; t++) {
-        ComputeFrame(signal, num_frames, t, fbank + t * stride);
-    }
-    return num_frames;
 }
 
 

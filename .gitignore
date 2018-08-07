@@ -7,3 +7,4 @@ bin/
 lib/
 kaldi-tools/build
 kaldi-tools/*.fst
+third_party/eigen

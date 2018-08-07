@@ -3,7 +3,7 @@ project("Simple decoder for ASR")
 
 set(CMAKE_CXX_STANDARD 11)
 
-MESSAGE(STATUS "detected OS: ${CMAKE_SYSTEM}")
+MESSAGE(STATUS "Detected OS: ${CMAKE_SYSTEM}")
 
 add_definitions(-O3 -g -std=c++11)
 include_directories(${CMAKE_SOURCE_DIR})

@@ -18,8 +18,11 @@ void ComputeSpectrum(Float32 *realfft, Int32 dim, Float32 *spectrum,
 // Compute mel-filter coefficients
 void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins,
                        Float32 sample_freq, Float32 low_freq, Float32 high_freq,
-                       std::vector<std::vector<Float32>> *weights);
+                       std::vector<std::vector<Float32> > *weights);
 
+template<class Computer>
+Int32 ComputeFeature(Computer &computer, Float32 *signal, Int32 num_samps, 
+                        Float32 *addr, Int32 stride);
 
 struct FrameOpts {
     Int32 frame_length, frame_shift, sample_freq;
@@ -42,18 +45,21 @@ struct FrameOpts {
 // Using for feature extraction
 class FrameSplitter {
 public:
-    FrameSplitter(const FrameOpts &opts): 
-            frame_length_(opts.frame_length),
-            frame_shift_(opts.frame_shift), 
-            preemph_coeff_(opts.preemph_coeff),
-            window_type_(opts.window_type), 
-            sample_freq_(opts.sample_freq) {
+    FrameSplitter(const FrameOpts &opts): frame_length_(opts.frame_length),
+            frame_shift_(opts.frame_shift), preemph_coeff_(opts.preemph_coeff),
+            window_type_(opts.window_type), sample_freq_(opts.sample_freq) {
         window_ = new Float32[frame_length_];
         ComputeWindow(frame_length_, window_, window_type_);
     }
 
     // Framing whole signal at a time into assigned memory address
-    Int32 Frame(Float32 *signal, Int32 num_samps, Float32 *frames, Int32 stride);
+    Int32 Frame(Float32 *signal, Int32 num_samps, Float32 *frames, Int32 stride) {
+        ASSERT(frame_length_ <= stride);
+        Int32 num_frames = NumFrames(num_samps);
+        for (Int32 t = 0; t < num_frames; t++)
+            FrameForIndex(signal, num_samps, t, frames + stride * t, NULL);
+        return num_frames;
+    }
 
     // Copy Frame at time 'index' into assigned memory address
     void FrameForIndex(Float32 *signal, Int32 num_samps, Int32 index,
@@ -61,7 +67,10 @@ public:
 
     // Compute number of frames given number of samples
     Int32 NumFrames(Int32 num_samps) {
-        return static_cast<Int32>((num_samps - frame_length_) / frame_shift_) + 1;
+        Int32 num_frames = static_cast<Int32>((num_samps - frame_length_) / frame_shift_) + 1;
+        if (num_frames == 0)
+            LOG_WARN << "Number of samples is less than frame length, " << num_samps << " vs " << frame_length_;
+        return num_frames;
     }
 
     Int32 FrameLength() { return frame_length_; }

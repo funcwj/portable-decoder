@@ -63,7 +63,12 @@ public:
 
     Int32 SampleRate() { return sample_rate_; }
 
-    Float32 *Data() { return data_; }
+    Float32 *Data(Bool normalized = false) {
+        if (normalized)
+            for (Int32 i = 0; i < num_samples_; i++)
+                data_[i] = data_[i] / static_cast<Float32>(MAX_INT16);
+        return data_; 
+    }
 
 private:
     Int32 num_channels_, num_samples_, sample_rate_;
