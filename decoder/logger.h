@@ -24,8 +24,7 @@ public:
 
     void Log(std::string msg) {
         std::ostringstream prefix;
-        prefix << TimeNow() << " " << type_ << "(" 
-            << function_ << "():" << file_ << ":" << line_ << ")";
+        prefix << TimeNow() << " - " << type_ << " [" << file_ << ":" << line_ << ":" << function_ << "()]";
         std::cerr << prefix.str().c_str() << " " << msg.c_str() << std::endl;
         if (type_ == "ASSERT" || type_ == "FAIL")
             abort();
@@ -56,7 +55,7 @@ private:
         tm *tm = localtime(&time_now);
         time_format << 1900 + tm->tm_year << "/" 
                     << 1 + tm->tm_mon << "/" << tm->tm_mday
-                    << " " << tm->tm_hour << ":" << tm->tm_min
+                    << " - " << tm->tm_hour << ":" << tm->tm_min
                     << ":" << tm->tm_sec;
         return time_format.str();
     }

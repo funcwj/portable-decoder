@@ -3,6 +3,8 @@
 
 #include "signal.h"
 
+Bool debug_mel = false;
+
 void ComputeWindow(Int32 window_size, Float32 *window, WindowType window_type) {
     Float32 a = PI2 / (window_size - 1);
     for (Int32 i = 0; i < window_size; i++) {
@@ -51,43 +53,48 @@ void Preemphasize(Float32 *frame, Int32 frame_length, Float32 preemph_coeff) {
 }
 
 // Compute mel-filter coefficients
-void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins, 
-                        Float32 center_freq, Float32 low_freq, Float32 high_freq,
+void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins, Int32 center_freq, 
+                        Int32 lower_bound, Int32 upper_bound,
                         std::vector<std::vector<Float32> > *weights) {
-    if (low_freq < 0 || low_freq >= center_freq || high_freq < 0 
-        || high_freq > center_freq || high_freq <= low_freq)
-        LOG_FAIL << "Bad frequency range: [" << low_freq << ", " 
-                << high_freq << "] with center frequency = "
-                << center_freq;
+    if (lower_bound < 0 || lower_bound >= center_freq || upper_bound < 0 
+        || upper_bound > center_freq || upper_bound <= lower_bound)
+        LOG_FAIL << "Bad frequency range: [" << lower_bound << ", " 
+                 << upper_bound << "] with center frequency = " << center_freq;
 
     ASSERT(num_mel_bins >= 3);
     // egs: 257
-    ASSERT(RoundUpToNearestPowerOfTwo(num_fft_bins - 1) == num_fft_bins);
+    ASSERT(RoundUpToNearestPowerOfTwo(num_fft_bins - 1) == num_fft_bins - 1);
     weights->resize(num_mel_bins);
     // Bound in melscale
-    Float32 mel_high_freq = ToMelScale(high_freq), 
-            mel_low_freq = ToMelScale(low_freq);
+    Float32 mel_upper_bound = ToMelScale(upper_bound), 
+            mel_lower_bound = ToMelScale(lower_bound);
     // Linear/Mel band width
-    Float32 linear_bw = center_freq / (num_fft_bins - 1), 
-            mel_bw = (mel_high_freq - mel_low_freq) / (num_mel_bins + 1);
+    Float32 linear_bw = center_freq / static_cast<Float32>(num_fft_bins - 1), 
+            mel_band_width = (mel_upper_bound - mel_lower_bound) / (num_mel_bins + 1);
     
     for (Int32 bin = 0; bin < num_mel_bins; bin++) {
+        Float32 center_mel = mel_lower_bound + (bin + 1) * mel_band_width;
         // Fill with zero
         std::vector<Float32> &filter = (*weights)[bin];
         filter.resize(num_fft_bins, 0.0);
-
-        Float32 left_mel = mel_low_freq + bin * mel_bw,
-            center_mel = mel_low_freq + (bin + 1) * mel_bw,
-            right_mel = mel_low_freq + (bin + 2) * mel_bw;
+        if (debug_mel) {
+            LOG_INFO << center_mel - mel_band_width << "/" << center_mel << "/" 
+                     << center_mel + mel_band_width;
+            std::cerr << "For bin " << bin << ": ";
+        }
         // Compute coefficient for each bin
         for (Int32 f = 0; f < num_fft_bins; f++) {
             Float32 mel = ToMelScale(linear_bw * f);
-            if (mel > left_mel && mel < right_mel) {
+            if (mel > center_mel - mel_band_width && mel < center_mel + mel_band_width) {
                 filter[f] = mel <= center_mel ? 
-                    (mel - left_mel) / (center_mel - left_mel):
-                    (right_mel - mel) / (right_mel - center_mel);
+                    (mel - center_mel) / mel_band_width + 1:
+                    (center_mel - mel) / mel_band_width + 1;
+                if (debug_mel)
+                    std::cerr << filter[f] << " ";
             }
         }
+        if (debug_mel)
+            std::cerr << std::endl;
     }
 }
 
@@ -118,25 +125,30 @@ void FrameSplitter::FrameForIndex(Float32 *signal, Int32 num_samps, Int32 index,
                                   Float32 *frame_addr, Float32 *raw_energy) {
     Int32 num_frames = NumFrames(num_samps);
     ASSERT(num_frames > index);
-
     // Copy to dest addr
     memcpy(frame_addr, signal + index * frame_shift_, sizeof(Float32) * frame_length_);
-    Float32 dc = 0, energy = 0;
-    for (Int32 n = 0; n < frame_length_; n++) {
+    Float32 dc = 0;
+    for (Int32 n = 0; n < frame_length_; n++)
         dc += frame_addr[n];
-        energy += frame_addr[n] * frame_addr[n];
+
+    if (raw_energy) {
+        Float32 energy = 0.0;
+        for (Int32 n = 0; n < frame_length_; n++)
+            energy += frame_addr[n] * frame_addr[n];
+        *raw_energy = energy;
     }
-    // using Blas
+    // If use openblas
     // energy = VdotV(frame_addr, frame_addr, frame_length_);
     dc /= frame_length_;
+    // Remove DC
     for (Int32 n = 0; n < frame_length_; n++)
         frame_addr[n] -= dc;
+    // Preemphasize
     if (preemph_coeff_ != 0)
         Preemphasize(frame_addr, frame_length_, preemph_coeff_);
+    // Windowing
     for (Int32 n = 0; n < frame_length_; n++)
         frame_addr[n] = frame_addr[n] * window_[n];
-    if (raw_energy)
-        *raw_energy = energy;
 }
 
 void SpectrogramComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *spectrum_addr) {
@@ -166,11 +178,12 @@ void FbankComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Floa
         ASSERT(mel_coeff_[f].size() == num_fft_bins);
         const Float32 *weights = mel_coeff_[f].data();
         Float32 mel_energy = 0;
-        // Blas
+        // if use openblas
         // Float32 mel_energy = VdotV(weights, spectrum_cache_, num_fft_bins);
         for (Int32 i = 0; i < num_fft_bins; i++)
             mel_energy += weights[i] * spectrum_cache_[i];
-        fbank_addr[f] = LogFloat32(mel_energy);
+        // log mel-fbank or linear mel-fbank
+        fbank_addr[f] = apply_log_ ? LogFloat32(mel_energy): mel_energy;
     }
 }
 

@@ -58,7 +58,12 @@ void Wave::Read(std::istream &is) {
     num_channels_ = header_.num_channels;
     sample_rate_ = header_.sample_rate;
     hold_memory_ = true;
-    ASSERT(header_.chunk_size == header_.format_size + 20 + num_bytes);
+    if (header_.chunk_size != header_.format_size + 20 + num_bytes) {
+        LOG_WARN << "Read " << num_samples_ << " samples(" << num_bytes << " bytes), "
+                 << "but chunk_size(" << header_.chunk_size << ") do not equal to "
+                 << "format_size(" << header_.format_size << ") + 20 + num_bytes("
+                 << num_bytes << ")";
+    }
 }
 
 
