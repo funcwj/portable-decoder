@@ -1,5 +1,6 @@
 // wujian@2018
 
+// openblas wrapper if needed
 
 #include "openblas/cblas.h"
 #include "type.h"

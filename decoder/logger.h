@@ -1,5 +1,8 @@
 // wujian@2018
 
+// A simple logger class
+
+
 #ifndef LOG_H
 #define LOG_H
 

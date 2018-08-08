@@ -6,6 +6,7 @@
 #include "decoder/common.h"
 #include "decoder/fft-computer.h"
 
+// Preemphasize function 
 void Preemphasize(Float32 *frame, Int32 frame_length, Float32 preemph_coeff);
 
 // Compute window values
@@ -17,7 +18,7 @@ void ComputeSpectrum(Float32 *realfft, Int32 dim, Float32 *spectrum,
 
 // Compute mel-filter coefficients
 void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins, Int32 sample_freq, 
-                        Int32 low_freq, Int32 high_freq,
+                        Int32 lower_bound, Int32 upper_bound,
                         std::vector<std::vector<Float32> > *weights);
 
 template<class Computer>
