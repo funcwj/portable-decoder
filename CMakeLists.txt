@@ -15,3 +15,4 @@ set(DECODER_LIB decoder)
 
 add_subdirectory(decoder)
 add_subdirectory(test)
+add_subdirectory(kaldi-tools)

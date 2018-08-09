@@ -90,14 +90,14 @@ void Wave::Write(std::ostream &os) {
 }
 
 
-void ReadWave(std::string filename, Wave *wave) {
-    std::fstream fs(filename.c_str(), std::ios::binary | std::ios::in);
+void ReadWave(const std::string &filename, Wave *wave) {
+    BinaryInput bi(filename);
     ASSERT(wave);
-    wave->Read(fs);
+    wave->Read(bi.Stream());
 }
 
 
-void WriteWave(std::string filename, Wave &wave) {
-    std::fstream fs(filename.c_str(), std::ios::binary | std::ios::out);
-    wave.Write(fs);
+void WriteWave(const std::string &filename, Wave &wave) {
+    BinaryOutput bo(filename);
+    wave.Write(bo.Stream());
 }

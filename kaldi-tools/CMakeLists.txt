@@ -3,7 +3,7 @@ project("Command tools for simple decoder based on Kaldi")
 
 set(CMAKE_CXX_STANDARD 11)
 
-MESSAGE(STATUS "detected OS: ${CMAKE_SYSTEM}")
+# MESSAGE(STATUS "Detected OS: ${CMAKE_SYSTEM}")
 
 set(KALDI_ROOT $ENV{KALDI_ROOT})
 if(NOT DEFINED KALDI_ROOT)

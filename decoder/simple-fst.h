@@ -184,4 +184,7 @@ private:
 };
 
 
+void ReadSimpleFst(const std::string &filename, SimpleFst *fst);
+
+
 #endif

@@ -37,3 +37,9 @@ private:
     Int32 num_tids_, num_pdfs_;
     Int32 *table_;
 };
+
+void ReadTransitionTable(const std::string &filename, TransitionTable *table) {
+    BinaryInput bi(filename);
+    ASSERT(table);
+    table->Read(bi.Stream());
+}

@@ -26,16 +26,21 @@ int main(int argc, char const *argv[]) {
 
         TransitionModel trans_model;
         ReadKaldiObject(transition_model_rxfilename, &trans_model);
-        Output ko(transition_mapped_wxfilename, true);
-        
+        // Output ko(transition_mapped_wxfilename, true);
+        std::ofstream os(transition_mapped_wxfilename.c_str(), 
+                            std::ios::out|std::ios::binary);
+
         int32 num_tids = trans_model.NumTransitionIds(), num_pdfs = trans_model.NumPdfs();
-        WriteBasicType(ko.Stream(), true, num_tids);
-        WriteBasicType(ko.Stream(), true, num_pdfs);
-
+        WriteBasicType(os, true, num_tids);
+        WriteBasicType(os, true, num_pdfs);
+        int32 *table = new int32[num_tids];
         for (int32 tid = 0; tid < num_tids; tid++)
-            WriteBasicType(ko.Stream(), true, trans_model.TransitionIdToPdf(tid));
+            // WriteBasicType(ko.Stream(), true, trans_model.TransitionIdToPdf(tid));
+            table[tid] = trans_model.TransitionIdToPdf(tid);
+        os.write(reinterpret_cast<const char*>(table), sizeof(int32) * num_tids);
         KALDI_LOG << "Copy from transition model with " << num_tids << " tids and " << num_pdfs << " pdfs done";
-
+        delete[] table;
+        
     } catch (const std::exception &e) {
         std::cerr << e.what();
         return -1;

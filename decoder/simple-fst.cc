@@ -78,3 +78,9 @@ void SimpleFst::Write(std::ostream &os) {
     LOG_INFO << "Write decoder graph, contains " << NumStates() << " states and "
              << num_arcs << " arcs with start index " << start_;
 }
+
+void ReadSimpleFst(const std::string &filename, SimpleFst *fst) {
+    BinaryInput bi(filename);
+    ASSERT(fst);
+    fst->Read(bi.Stream());
+}

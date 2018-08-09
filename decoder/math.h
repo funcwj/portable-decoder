@@ -17,6 +17,8 @@ const Float32 EPS_F32 = std::numeric_limits<Float32>::epsilon();
 const Int16 MIN_INT16 = std::numeric_limits<Int16>::min();
 const Int16 MAX_INT16 = std::numeric_limits<Int16>::max();
 
+const Float32 FLOAT32_INF = std::numeric_limits<Float32>::infinity();
+const Float64 FLOAT64_INF = std::numeric_limits<Float64>::infinity();
 
 #define REAL_PART(complex_values, index) (complex_values[(index) << 1])
 #define IMAG_PART(complex_values, index) (complex_values[((index) << 1) + 1])

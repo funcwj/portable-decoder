@@ -15,11 +15,9 @@ void ReadBinary(std::istream &is, char *ptr, Int32 num_bytes) {
 
 template<class T> 
 void ReadBinaryBasicType(std::istream &is, T *t) {
-    char num_bytes = is.peek();
-    if (abs(num_bytes) != sizeof(*t)) {
+    char num_bytes = is.get();
+    if (abs(num_bytes) != sizeof(*t))
         LOG_FAIL << "Expect " << sizeof(*t) << " bytes, but get " << static_cast<Int32>(num_bytes);
-    }
-    is.get(); 
     ReadBinary(is, reinterpret_cast<char*>(t), sizeof(*t));
     ASSERT(!is.fail() && "ReadBinaryBasicType Failed");
 }

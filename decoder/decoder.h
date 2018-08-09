@@ -21,7 +21,7 @@ public:
 
     void InitDecoding();
 
-    void DecodeFrame(Float32 *posteriors, Int32 num_pdfs);
+    void DecodeFrame(Float32 *loglikes, Int32 num_pdfs);
 
     Int32 NumDecodedFrames() { return num_frames_decoded_; }
 
@@ -29,7 +29,10 @@ public:
 
     Bool GetBestPath(std::vector<Int32> *word_sequence);
 
-    void FinalizeDecoding() { ClearToks(toks_.Clear()); }
+    void FinalizeDecoding() {
+        num_frames_decoded_ = 0;
+        ClearToks(toks_.Clear());
+    }
 
 private:
     class Token {
@@ -37,7 +40,7 @@ private:
         Arc arc_;
         Token *prev_;
         Int32 ref_count_;
-        Float64 cost_;
+        Float64 cost_;  // negative-log
 
         inline Token(const Arc &arc, Token *prev, Float32 ac_cost = 0.0):
             arc_(arc), prev_(prev), ref_count_(1) {
@@ -63,7 +66,7 @@ private:
 
     Float64 GetCutoff(Elem *list_head, UInt64 *tok_count, Float32 *adaptive_beam, Elem **best_elem);
 
-    Float64 ProcessEmitting(Float32 *posteriors, Int32 num_pdfs);
+    Float64 ProcessEmitting(Float32 *loglikes, Int32 num_pdfs);
 
     void ProcessNonemitting(Float64 cutoff);
 

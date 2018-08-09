@@ -79,9 +79,9 @@ private:
 };
 
 
-void ReadWave(std::string filename, Wave *wave);
+void ReadWave(const std::string &filename, Wave *wave);
 
-void WriteWave(std::string filename, Wave &wave);
+void WriteWave(const std::string &filename, Wave &wave);
 
 
 #endif 

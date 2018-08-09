@@ -16,16 +16,19 @@ void FasterDecoder::InitDecoding() {
 }
 
 
-void FasterDecoder::DecodeFrame(Float32 *posteriors, Int32 num_pdfs) {
-    ASSERT(num_pdfs == table_.NumPdfs());
-    Float64 weight_cutoff = ProcessEmitting(posteriors, num_pdfs);
+void FasterDecoder::DecodeFrame(Float32 *loglikes, Int32 num_pdfs) {
+    if (num_pdfs != table_.NumPdfs()) {
+        LOG_FAIL << "It seems that dimention of loglikes do not equal to number of pdfs, "
+                 << num_pdfs << " vs " << table_.NumPdfs();
+    }
+    Float64 weight_cutoff = ProcessEmitting(loglikes, num_pdfs);
     ProcessNonemitting(weight_cutoff);
 }
 
 // Gets the weight cutoff.  Also counts the active tokens.
 Float64 FasterDecoder::GetCutoff(Elem *list_head, UInt64 *tok_count,
                                 Float32 *adaptive_beam, Elem **best_elem) {
-    Float64 best_cost = std::numeric_limits<Float64>::infinity();
+    Float64 best_cost = FLOAT64_INF;
     UInt64 count = 0;
     if (max_active_ == std::numeric_limits<Int32>::max() && min_active_ == 0) {
         for (Elem *e = list_head; e != NULL; e = e->tail, count++) {
@@ -48,10 +51,11 @@ Float64 FasterDecoder::GetCutoff(Elem *list_head, UInt64 *tok_count,
                 if (best_elem) *best_elem = e;
             }
         }
-        if (tok_count != NULL) *tok_count = count;
-        Float64 beam_cutoff = best_cost + beam_,
-            min_active_cutoff = std::numeric_limits<Float64>::infinity(),
-            max_active_cutoff = std::numeric_limits<Float64>::infinity();
+        if (tok_count != NULL) 
+            *tok_count = count;
+
+        Float64 beam_cutoff = best_cost + beam_, min_active_cutoff = FLOAT64_INF,
+            max_active_cutoff = FLOAT64_INF;
 
         if (tmp_array_.size() > static_cast<UInt64>(max_active_)) {
             std::nth_element(tmp_array_.begin(), tmp_array_.begin() + max_active_, tmp_array_.end());
@@ -83,7 +87,7 @@ Float64 FasterDecoder::GetCutoff(Elem *list_head, UInt64 *tok_count,
 }
 
 
-Float64 FasterDecoder::ProcessEmitting(Float32 *posteriors, Int32 num_pdfs) {
+Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
     Elem *last_toks = toks_.Clear();
     size_t tok_cnt;
     Float32 adaptive_beam;
@@ -100,7 +104,7 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *posteriors, Int32 num_pdfs) {
     // This is the cutoff we use after adding in the log-likes (i.e.
     // for the next frame).  This is a bound on the cutoff we will use
     // on the next frame.
-    Float64 next_weight_cutoff = std::numeric_limits<Float64>::infinity();
+    Float64 next_weight_cutoff = FLOAT64_INF;
 
     // First process the best token to get a hopefully
     // reasonably tight bound on the next cutoff.
@@ -110,7 +114,7 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *posteriors, Int32 num_pdfs) {
         for (ArcIterator aiter(fst_, state); !aiter.Done(); aiter.Next()) {
             const Arc &arc = aiter.Value();
             if (arc.ilabel != 0) {  // we'd propagate..
-                Float32 ac_cost = -posteriors[table_.TransitionIdToPdf(arc.ilabel)];
+                Float32 ac_cost = -loglikes[table_.TransitionIdToPdf(arc.ilabel)];
                 Float64 new_weight = arc.weight + tok->cost_ + ac_cost;
                 if (new_weight + adaptive_beam < next_weight_cutoff)
                     next_weight_cutoff = new_weight + adaptive_beam;
@@ -131,7 +135,8 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *posteriors, Int32 num_pdfs) {
             for (ArcIterator aiter(fst_, state); !aiter.Done(); aiter.Next()) {
                 Arc arc = aiter.Value();
                 if (arc.ilabel != 0) {  // propagate..
-                    Float32 ac_cost = -posteriors[table_.TransitionIdToPdf(arc.ilabel)];
+                    // minimum
+                    Float32 ac_cost = -loglikes[table_.TransitionIdToPdf(arc.ilabel)];
                     double new_weight = arc.weight + tok->cost_ + ac_cost;
                     if (new_weight < next_weight_cutoff) {  // not pruned..
                         Token *new_tok = new Token(arc, tok, ac_cost);
@@ -203,8 +208,7 @@ void FasterDecoder::ProcessNonemitting(Float64 cutoff) {
 
 Bool FasterDecoder::ReachedFinal() {
     for (const Elem *e = toks_.GetList(); e != NULL; e = e->tail) {
-        if (e->val->cost_ != std::numeric_limits<Float64>::infinity() 
-            && fst_.Final(e->key) != 0)
+        if (e->val->cost_ != FLOAT64_INF && fst_.Final(e->key) != 0)
         return true;
     }
     return false;
@@ -216,25 +220,24 @@ Bool FasterDecoder::GetBestPath(std::vector<Int32> *word_sequence) {
     Bool is_final = ReachedFinal();
     if (!is_final) {
         for (const Elem *e = toks_.GetList(); e != NULL; e = e->tail)
-        if (best_tok == NULL || best_tok->cost_ > e->val->cost_ )
-            best_tok = e->val;
+            if (best_tok == NULL || best_tok->cost_ > e->val->cost_ )
+                best_tok = e->val;
     } else {
-        Float64 infinity =  std::numeric_limits<Float64>::infinity(),
-            best_cost = infinity;
+        Float64 best_cost = FLOAT64_INF;
         for (const Elem *e = toks_.GetList(); e != NULL; e = e->tail) {
             Float64 this_cost = e->val->cost_ + fst_.Final(e->key);
-            if (this_cost < best_cost && this_cost != infinity) {
+            if (this_cost < best_cost && this_cost != FLOAT64_INF) {
                 best_cost = this_cost;
                 best_tok = e->val;
             }
         }
     }
-    if (best_tok == NULL) return false;  // No output.
+    if (best_tok == NULL) 
+        return false;  // No output.
 
-    for (Token *tok = best_tok; tok != NULL; tok = tok->prev_) {
+    for (Token *tok = best_tok; tok != NULL; tok = tok->prev_)
         if (tok->arc_.olabel)
             word_sequence->push_back(tok->arc_.olabel);
-    }
     std::reverse(word_sequence->begin(), word_sequence->end());
     return true;
 }
