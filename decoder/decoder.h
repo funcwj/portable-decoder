@@ -9,7 +9,6 @@
 #include "decoder/simple-fst.h"
 
 
-
 class FasterDecoder {
 public:
     FasterDecoder(const SimpleFst &fst, const TransitionTable &table, 

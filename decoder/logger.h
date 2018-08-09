@@ -8,26 +8,32 @@
 
 #include <sstream>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
+#include <algorithm>
 #include <ctime>
 
 
 class Logger {
 public:
-    Logger(std::string type, const char *function, const char *file, size_t line): 
-            type_(type), function_(function), 
-            line_(line), file_(GetFileName(file)) {}
+    Logger(const std::string &type, const char *func, const char *file, size_t line): 
+            type_(type), func_(func), 
+            line_(line), file_(BaseName(file)) {}
     
     ~Logger() {
-        std::string info = oss_.str();
-        while (!info.empty() && info[info.length() - 1] == '\n')
-            info.resize(info.length() - 1);
-        Log(info);
+        std::string msg = oss_.str();
+        while (true) {
+            std::string::iterator p = std::find(msg.begin(), msg.end(), '\n');
+            if (p == msg.end())
+                break;
+            msg.erase(p);
+        }
+        Log(msg);
     }
 
-    void Log(std::string msg) {
+    void Log(const std::string &msg) {
         std::ostringstream prefix;
-        prefix << TimeNow() << " - " << type_ << " [" << file_ << ":" << line_ << ":" << function_ << "()]";
+        prefix << Date() << " - " << type_ << " [" << file_ << ":" << line_ << ":" << func_ << "()]";
         std::cerr << prefix.str().c_str() << " " << msg.c_str() << std::endl;
         if (type_ == "ASSERT" || type_ == "FAIL")
             abort();
@@ -38,12 +44,12 @@ public:
 private:
     std::ostringstream oss_;
 
-    std::string type_;   // ERROR, INFO, WARN, ASSERT
-    const char *function_;
+    std::string type_;   // FAIL, INFO, WARN, ASSERT
+    const char *func_;
     const char *file_;
     size_t line_;
 
-    const char* GetFileName(const char *path) {
+    const char* BaseName(const char *path) {
         int pos = strlen(path) - 1;
         while (pos >= 0) {
             if (path[pos] == '/') break;
@@ -52,14 +58,16 @@ private:
         return path + pos + 1;
     }
 
-    const std::string TimeNow() {
+    const std::string Date() {
         std::ostringstream time_format;
         time_t time_now = time(0);
         tm *tm = localtime(&time_now);
-        time_format << 1900 + tm->tm_year << "/" 
-                    << 1 + tm->tm_mon << "/" << tm->tm_mday
-                    << " - " << tm->tm_hour << ":" << tm->tm_min
-                    << ":" << tm->tm_sec;
+        time_format << 1900 + tm->tm_year << "/"
+                    << std::setw(2) << std::setfill('0') << 1 + tm->tm_mon << "/" 
+                    << std::setw(2) << std::setfill('0') << tm->tm_mday << " - " 
+                    << std::setw(2) << std::setfill('0') << tm->tm_hour << ":" 
+                    << std::setw(2) << std::setfill('0') << tm->tm_min << ":" 
+                    << std::setw(2) << std::setfill('0') << tm->tm_sec;
         return time_format.str();
     }
 };

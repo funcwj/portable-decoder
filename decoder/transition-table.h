@@ -35,6 +35,7 @@ public:
 
 private:
     Int32 num_tids_, num_pdfs_;
+    // index by transition-id, mapping to pdfid
     Int32 *table_;
 };
 

@@ -13,6 +13,7 @@
 #include "decoder/math.h"
 #include "decoder/io.h"
 #include "decoder/logger.h"
+#include "decoder/timer.h"
 
 
 #endif

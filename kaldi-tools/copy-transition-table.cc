@@ -9,9 +9,9 @@ int main(int argc, char const *argv[]) {
         using namespace kaldi;
 
         const char *usage = 
-            "Copy mapping of tid & pdf from Kaldi's Transition models, which will be used in simple-decoder\n"
+            "Copy TransitionTable(mapping from tid to pdf) from Kaldi's Transition models, which will be used in simple-decoder\n"
             "\n"
-            "Usage: copy-tid-to-pdf <transition-model> <tid-map>\n";
+            "Usage: copy-transition-table <transition-model> <tid-map>\n";
 
         ParseOptions po(usage);
         po.Read(argc, argv);

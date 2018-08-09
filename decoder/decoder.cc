@@ -89,7 +89,7 @@ Float64 FasterDecoder::GetCutoff(Elem *list_head, UInt64 *tok_count,
 
 Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
     Elem *last_toks = toks_.Clear();
-    size_t tok_cnt;
+    UInt64 tok_cnt;
     Float32 adaptive_beam;
     Elem *best_elem = NULL;
     Float64 weight_cutoff = GetCutoff(last_toks, &tok_cnt, &adaptive_beam, &best_elem);

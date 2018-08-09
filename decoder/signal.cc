@@ -5,6 +5,19 @@
 
 Bool debug_mel = false;
 
+std::string WindowToString(WindowType window) {
+    switch (window) {
+        case kBlackMan:
+            return "blackman";
+        case kHamm:
+            return "hamming";
+        case kHann:
+            return "hanning";
+        case kRect:
+            return "rectangle";
+    }
+}
+
 void ComputeWindow(Int32 window_size, Float32 *window, WindowType window_type) {
     Float32 a = PI2 / (window_size - 1);
     for (Int32 i = 0; i < window_size; i++) {
@@ -54,8 +67,7 @@ void Preemphasize(Float32 *frame, Int32 frame_length, Float32 preemph_coeff) {
 
 // Compute mel-filter coefficients
 void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins, Int32 center_freq, 
-                        Int32 lower_bound, Int32 upper_bound,
-                        std::vector<std::vector<Float32> > *weights) {
+                    Int32 lower_bound, Int32 upper_bound, std::vector<std::vector<Float32> > *weights) {
     if (lower_bound < 0 || lower_bound >= center_freq || upper_bound < 0 
         || upper_bound > center_freq || upper_bound <= lower_bound)
         LOG_FAIL << "Bad frequency range: [" << lower_bound << ", " 
@@ -98,6 +110,25 @@ void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins, Int32 center_freq
     }
 }
 
+void ComputeDctMatrix(Float32 *dct_matrix_, Int32 num_rows, Int32 num_cols) {
+    ASSERT(num_rows && num_cols);
+
+    Float32 normalizer = std::sqrt(1.0 / static_cast<Float32>(num_cols));
+
+    for (Int32 j = 0; j < num_cols; j++) {
+        dct_matrix_[j] = normalizer;
+        std::cerr << dct_matrix_[j] << (j == num_cols - 1 ? "\n" : " ");
+    }
+    normalizer = std::sqrt(2.0 / static_cast<Float32>(num_cols));
+
+    for (Int32 k = 1; k < num_rows; k++)
+        for (Int32 n = 0; n < num_cols; n++) {
+            dct_matrix_[k * num_cols + n] = normalizer * 
+                std::cos(static_cast<Float64>(PI) / num_cols * (n + 0.5) * k);
+            std::cerr << dct_matrix_[k * num_cols + n] << (n == num_cols - 1 ? "\n": " ");
+        }
+}
+
 template<class Computer>
 Int32 ComputeFeature(Computer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride) {
     ASSERT(computer.FeatureDim() <= stride);
@@ -116,6 +147,9 @@ template
 Int32 ComputeFeature(FbankComputer &computer, Float32 *signal, Int32 num_samps, 
                         Float32 *addr, Int32 stride);
 
+template
+Int32 ComputeFeature(MfccComputer &computer, Float32 *signal, Int32 num_samps, 
+                        Float32 *addr, Int32 stride);
 /*
     1) Remove DC
     2) Preemphasize
@@ -130,19 +164,19 @@ void FrameSplitter::FrameForIndex(Float32 *signal, Int32 num_samps, Int32 index,
     Float32 dc = 0;
     for (Int32 n = 0; n < frame_length_; n++)
         dc += frame_addr[n];
-
-    if (raw_energy) {
-        Float32 energy = 0.0;
-        for (Int32 n = 0; n < frame_length_; n++)
-            energy += frame_addr[n] * frame_addr[n];
-        *raw_energy = energy;
-    }
     // If use openblas
     // energy = VdotV(frame_addr, frame_addr, frame_length_);
     dc /= frame_length_;
     // Remove DC
     for (Int32 n = 0; n < frame_length_; n++)
         frame_addr[n] -= dc;
+    // Compute raw energy after removing DC
+    if (raw_energy) {
+        Float32 energy = 0.0;
+        for (Int32 n = 0; n < frame_length_; n++)
+            energy += frame_addr[n] * frame_addr[n];
+        *raw_energy = energy;
+    }
     // Preemphasize
     if (preemph_coeff_ != 0)
         Preemphasize(frame_addr, frame_length_, preemph_coeff_);
@@ -151,12 +185,13 @@ void FrameSplitter::FrameForIndex(Float32 *signal, Int32 num_samps, Int32 index,
         frame_addr[n] = frame_addr[n] * window_[n];
 }
 
-void SpectrogramComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *spectrum_addr) {
+Float32 SpectrogramComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *spectrum_addr) {
     Int32 num_frames = splitter->NumFrames(num_samps);
     Float32 raw_energy;
     ASSERT(t < num_frames);
     // SetZero for padding windows
     memset(realfft_cache_, 0, sizeof(Float32) * padding_length_);
+    memset(spectrum_addr, 0, sizeof(Float32) * FeatureDim());
     // Load current frame into cache
     splitter->FrameForIndex(signal, num_samps, t, realfft_cache_, &raw_energy);
     // Run RealFFT
@@ -166,13 +201,15 @@ void SpectrogramComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t
     // Using log-energy or not
     if (use_log_raw_energy_)
         spectrum_addr[0] = LogFloat32(raw_energy);
+    return raw_energy;
 }
 
-void FbankComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *fbank_addr) {
+Float32 FbankComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *fbank_addr) {
     Int32 num_fft_bins = spectrogram_computer_->FeatureDim();
     ASSERT(t < spectrogram_computer_->NumFrames(num_samps));
+    memset(fbank_addr, 0, sizeof(Float32) * FeatureDim());
     // Compute linear-spectrogram, no energy
-    spectrogram_computer_->ComputeFrame(signal, num_samps, t, spectrum_cache_);
+    Float32 raw_energy = spectrogram_computer_->ComputeFrame(signal, num_samps, t, spectrum_cache_);
     // Weight spectrogram with mel coefficients
     for (Int32 f = 0; f < num_bins_; f++) {
         ASSERT(mel_coeff_[f].size() == num_fft_bins);
@@ -181,10 +218,32 @@ void FbankComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Floa
         // if use openblas
         // Float32 mel_energy = VdotV(weights, spectrum_cache_, num_fft_bins);
         for (Int32 i = 0; i < num_fft_bins; i++)
-            mel_energy += weights[i] * spectrum_cache_[i];
+            mel_energy += spectrum_cache_[i] * weights[i];
         // log mel-fbank or linear mel-fbank
         fbank_addr[f] = apply_log_ ? LogFloat32(mel_energy): mel_energy;
     }
+    return raw_energy;
 }
 
 
+Float32 MfccComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *mfcc_addr) {
+    ASSERT(t < fbank_computer->NumFrames(num_samps));
+    // Zero mfcc_addr
+    memset(mfcc_addr, 0, sizeof(Float32) * FeatureDim());
+    Float32 raw_energy = fbank_computer->ComputeFrame(signal, num_samps, t, mel_energy_cache_);
+    Int32 num_mel_bins = fbank_computer->FeatureDim();
+    // mfcc = dct_matrix_ * mel_energy
+    // dct_matrix_: only use first num_ceps rows
+    for (Int32 i = 0; i < num_ceps_; i++) {
+        for (Int32 j = 0; j < num_mel_bins; j++)
+            mfcc_addr[i] += (dct_matrix_[i * num_mel_bins + j] * mel_energy_cache_[j]);
+    }
+    // Scale
+    if (cepstral_lifter_ != 0.0) {
+        for (Int32 i = 0; i < num_ceps_; i++)
+            mfcc_addr[i] = mfcc_addr[i] * lifter_coeffs_[i];
+    }
+    if (use_energy_)
+        mfcc_addr[0] = LogFloat32(raw_energy);
+    return raw_energy;
+}

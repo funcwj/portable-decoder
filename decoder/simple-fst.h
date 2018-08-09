@@ -5,9 +5,7 @@
 #ifndef SIMPLE_FST_H
 #define SIMPLE_FST_H
 
-#include <vector>
-
-#include "decoder/type.h"
+#include "decoder/common.h"
 
 struct Arc {
     Label ilabel, olabel;

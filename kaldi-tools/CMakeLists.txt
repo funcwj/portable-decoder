@@ -18,7 +18,7 @@ include_directories(${KALDI_ROOT}/src ${KALDI_ROOT}/tools/openfst/include)
 link_directories(${KALDI_ROOT}/src/lib)
 
 add_executable(copy-decode-graph copy-decode-graph.cc)
-add_executable(copy-tid-to-pdf copy-tid-to-pdf.cc)
+add_executable(copy-transition-table copy-transition-table.cc)
 target_link_libraries(copy-decode-graph ${DEPEND_LIBS})
-target_link_libraries(copy-tid-to-pdf ${DEPEND_LIBS})
+target_link_libraries(copy-transition-table ${DEPEND_LIBS})
 
