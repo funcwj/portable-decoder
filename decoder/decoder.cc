@@ -5,7 +5,7 @@
 #include "decoder/decoder.h"
 
 
-void FasterDecoder::InitDecoding() {
+void FasterDecoder::Reset() {
     ClearToks(toks_.Clear());
     StateId start_state = fst_.Start();
     ASSERT(start_state != NoStateId);
@@ -112,7 +112,8 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
         for (ArcIterator aiter(fst_, state); !aiter.Done(); aiter.Next()) {
             const Arc &arc = aiter.Value();
             if (arc.ilabel != 0) {  // we'd propagate..
-                Float32 ac_cost = -loglikes[table_.TransitionIdToPdf(arc.ilabel)];
+                // -loglikes[table_.TransitionIdToPdf(arc.ilabel)] * acoustic_scale_;
+                Float32 ac_cost = NegativeLoglikelihood(loglikes, arc.ilabel);
                 Float64 new_weight = arc.weight + tok->cost_ + ac_cost;
                 if (new_weight + adaptive_beam < next_weight_cutoff)
                     next_weight_cutoff = new_weight + adaptive_beam;
@@ -123,19 +124,19 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
     // the tokens are now owned here, in last_toks, and the hash is empty.
     // 'owned' is a complex thing here; the point is we need to call TokenDelete
     // on each elem 'e' to let toks_ know we're done with them.
-    for (Elem *e = last_toks, *e_tail; e != NULL; e = e_tail) {  // loop this way
+    for (Elem *e = last_toks, *e_tail; e != NULL; e = e_tail) {
         // because we delete "e" as we go.
         StateId state = e->key;
         Token *tok = e->val;
         if (tok->cost_ < weight_cutoff) {  // not pruned.
-            // np++;
             ASSERT(state == tok->arc_.nextstate);
             for (ArcIterator aiter(fst_, state); !aiter.Done(); aiter.Next()) {
                 Arc arc = aiter.Value();
-                if (arc.ilabel != 0) {  // propagate..
+                if (arc.ilabel != 0) {
                     // minimum
-                    Float32 ac_cost = -loglikes[table_.TransitionIdToPdf(arc.ilabel)];
-                    double new_weight = arc.weight + tok->cost_ + ac_cost;
+                    // -loglikes[table_.TransitionIdToPdf(arc.ilabel)] * acoustic_scale_;
+                    Float32 ac_cost = NegativeLoglikelihood(loglikes, arc.ilabel);
+                    Float64 new_weight = arc.weight + tok->cost_ + ac_cost;
                     if (new_weight < next_weight_cutoff) {  // not pruned..
                         Token *new_tok = new Token(arc, tok, ac_cost);
                         Elem *e_found = toks_.Find(arc.nextstate);
@@ -172,8 +173,8 @@ void FasterDecoder::ProcessNonemitting(Float64 cutoff) {
     while (!queue_.empty()) {
         StateId state = queue_.back();
         queue_.pop_back();
-        Token *tok = toks_.Find(state)->val;  // would segfault if state not
-        // in toks_ but this can't happen.
+        Token *tok = toks_.Find(state)->val;  
+        // would segfault if state not in toks_ but this can't happen.
         if (tok->cost_ > cutoff) // Don't bother processing successors.
             continue;
 
@@ -204,6 +205,11 @@ void FasterDecoder::ProcessNonemitting(Float64 cutoff) {
     }
 }
 
+
+inline Float32 FasterDecoder::NegativeLoglikelihood(Float32 *loglikes, Label tid) {
+    return -loglikes[table_.TransitionIdToPdf(tid)] * acoustic_scale_;
+}
+
 Bool FasterDecoder::ReachedFinal() {
     for (const Elem *e = toks_.GetList(); e != NULL; e = e->tail) {
         if (e->val->cost_ != FLOAT64_INF && fst_.Final(e->key) != 0)
@@ -213,7 +219,9 @@ Bool FasterDecoder::ReachedFinal() {
 }
 
 Bool FasterDecoder::GetBestPath(std::vector<Int32> *word_sequence) {
-    word_sequence->clear();
+    // do not clear
+    // word_sequence->clear();
+    // std::vector<Int32>::iterator end_iter = word_sequence->end();
     Token *best_tok = NULL;
     Bool is_final = ReachedFinal();
     if (!is_final) {
@@ -231,12 +239,16 @@ Bool FasterDecoder::GetBestPath(std::vector<Int32> *word_sequence) {
         }
     }
     if (best_tok == NULL) 
-        return false;  // No output.
+        return false;
 
+    Int32 num_labels = 0;
     for (Token *tok = best_tok; tok != NULL; tok = tok->prev_)
-        if (tok->arc_.olabel)
+        if (tok->arc_.olabel) {
             word_sequence->push_back(tok->arc_.olabel);
-    std::reverse(word_sequence->begin(), word_sequence->end());
+            num_labels++;
+        }
+    if (num_labels)
+        std::reverse(word_sequence->end() - num_labels, word_sequence->end());
     return true;
 }
 

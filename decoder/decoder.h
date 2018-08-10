@@ -12,17 +12,20 @@
 class FasterDecoder {
 public:
     FasterDecoder(const SimpleFst &fst, const TransitionTable &table, 
-                    Int32 min_active = 200, Int32 max_active = 7000, Float32 beam = 15.0):
+                    Int32 min_active = 200, Int32 max_active = 7000, 
+                    Float32 beam = 15.0, Float32 ac_scale = 0.1, Float32 penalty = 0.0):
                     fst_(fst), table_(table), min_active_(min_active), 
-                    max_active_(max_active), beam_(beam) {
+                    max_active_(max_active), beam_(beam), 
+                    acoustic_scale_(ac_scale),  word_penalty_(penalty) {
         ASSERT(min_active_ < max_active_);
         ASSERT(min_active_ > 0 && max_active_ > 1);
+        ASSERT(word_penalty_ >= 0 && word_penalty_ <= 1);
         toks_.SetSize(1000);
     }
 
     ~FasterDecoder() { ClearToks(toks_.Clear()); }
 
-    void InitDecoding();
+    void Reset();
 
     void DecodeFrame(Float32 *loglikes, Int32 num_pdfs);
 
@@ -31,11 +34,6 @@ public:
     Bool ReachedFinal();
 
     Bool GetBestPath(std::vector<Int32> *word_sequence);
-
-    void FinalizeDecoding() {
-        num_frames_decoded_ = 0;
-        ClearToks(toks_.Clear());
-    }
 
 private:
     class Token {
@@ -71,6 +69,8 @@ private:
 
     Float64 ProcessEmitting(Float32 *loglikes, Int32 num_pdfs);
 
+    inline Float32 NegativeLoglikelihood(Float32 *loglikes, Label tid);
+
     void ProcessNonemitting(Float64 cutoff);
 
     HashList<StateId, Token*> toks_;
@@ -81,6 +81,7 @@ private:
     std::vector<Float32> tmp_array_;  // used in GetCutoff.
 
     Float32 beam_;
+    Float32 acoustic_scale_, word_penalty_; // acwt and word penalty
     Int32 max_active_, min_active_;
 
     SimpleFst fst_;
