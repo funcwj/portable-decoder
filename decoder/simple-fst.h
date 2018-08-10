@@ -17,12 +17,18 @@ struct Arc {
     Arc(Label ilabel, Label olabel, Weight weight, StateId nextstate): 
         ilabel(ilabel), olabel(olabel), 
         weight(weight), nextstate(nextstate) { }
+
+    std::string ToString() const {
+        std::ostringstream oss;
+        oss << "(" << ilabel << "/" << olabel << "/" << weight << "->" << nextstate << ")";
+        return oss.str();
+    }
 };
 
 
 class State {
 public:
-    State(): final_(0.0), niepsilons_(0), noepsilons_(0) { }
+    State(): final_(TROPICAL_ZERO32), niepsilons_(0), noepsilons_(0) { }
 
     Weight Final() const { return final_; }
 
@@ -79,11 +85,15 @@ class SimpleFst {
 public:
     SimpleFst(): start_(NoStateId) {}
 
+    SimpleFst(const SimpleFst &fst);
+    
     ~SimpleFst() {
         for (State *state: states_) {
             delete state;
         }
     }
+
+    Bool Equal(const SimpleFst &fst);
 
     void Read(std::istream &is);
 

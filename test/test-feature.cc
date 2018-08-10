@@ -8,6 +8,9 @@ using namespace Eigen;
 
 using Mat = Matrix<Float32, Dynamic, Dynamic, RowMajor>;
 
+// Compared with command:
+// echo "egs egs.wav" | compute-mfcc-feats --window-type=hamming --dither=0.0  scp:-  ark,t:-
+
 void TestMfcc() {
     MfccOpts mfcc_opts;
     std::cout << "Mfcc configure: " << std::endl << mfcc_opts.Configure();
@@ -26,7 +29,7 @@ void TestMfcc() {
     std::cout << mfcc << std::endl;
 }
 
-// compared with command:
+// Compared with command:
 // echo "egs egs.wav" | compute-fbank-feats --window-type=hamming --dither=0.0 --num-mel-bins=40 scp:-  ark,t:- 
 
 void TestFBank() {
@@ -48,7 +51,7 @@ void TestFBank() {
     std::cout << fbank << std::endl;
 }
 
-// compared with command:
+// Compared with command:
 // echo "egs egs.wav" | compute-spectrogram-feats --window-type=hamming --dither=0.0 scp:-  ark,t:- 
 
 void TestSpectrogram() {

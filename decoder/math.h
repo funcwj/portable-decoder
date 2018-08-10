@@ -20,6 +20,10 @@ const Int16 MAX_INT16 = std::numeric_limits<Int16>::max();
 const Float32 FLOAT32_INF = std::numeric_limits<Float32>::infinity();
 const Float64 FLOAT64_INF = std::numeric_limits<Float64>::infinity();
 
+// define Zero/One in tropical semiring
+const Float32 TROPICAL_ZERO32 = FLOAT32_INF;
+const Float32 TROPICAL_ONE32  = 1;
+
 #define REAL_PART(complex_values, index) (complex_values[(index) << 1])
 #define IMAG_PART(complex_values, index) (complex_values[((index) << 1) + 1])
 

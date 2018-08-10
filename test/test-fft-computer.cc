@@ -6,7 +6,7 @@
 using namespace Eigen;
 
 int main() {
-    size_t N = 8;
+    Int32 N = 8;
     
     VectorXf real_vector = VectorXf::Random(N);
     std::cout << real_vector << std::endl;

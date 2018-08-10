@@ -1,4 +1,5 @@
-// wujian@2018
+// decoder/wave.cc
+// wujian@2018.8
 
 #include "wave.h"
 

@@ -11,7 +11,7 @@ void FasterDecoder::InitDecoding() {
     ASSERT(start_state != NoStateId);
     Arc dummy_arc(0, 0, 0, start_state);
     toks_.Insert(start_state, new Token(dummy_arc, NULL));
-    ProcessNonemitting(std::numeric_limits<Float32>::max());
+    ProcessNonemitting(std::numeric_limits<Float64>::max());
     num_frames_decoded_ = 0;
 }
 
@@ -93,10 +93,8 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
     Float32 adaptive_beam;
     Elem *best_elem = NULL;
     Float64 weight_cutoff = GetCutoff(last_toks, &tok_cnt, &adaptive_beam, &best_elem);
-    LOG_INFO << tok_cnt << " tokens active.";
+    // LOG_INFO << tok_cnt << " tokens active.";
     // This makes sure the hash is always big enough.
-    // PossiblyResizeHash(tok_cnt);
-
     UInt64 new_sz = static_cast<UInt64>(static_cast<Float32>(tok_cnt) * 2);
     if (new_sz > toks_.Size())
         toks_.SetSize(new_sz);

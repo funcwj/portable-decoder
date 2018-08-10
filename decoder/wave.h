@@ -1,4 +1,5 @@
-// wujian@2018
+// decoder/wave.h
+// wujian@2018.8
 
 // First implemented in https://github.com/funcwj/asr-utils/blob/master/wave/wave.h
 
@@ -63,10 +64,12 @@ public:
 
     Int32 SampleRate() { return sample_rate_; }
 
+    // Bug: could not be called twice if normalized=true
     Float32 *Data(Bool normalized = false) {
-        if (normalized)
+        if (normalized) {
             for (Int32 i = 0; i < num_samples_; i++)
                 data_[i] = data_[i] / static_cast<Float32>(MAX_INT16);
+        }
         return data_; 
     }
 

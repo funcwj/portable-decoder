@@ -33,7 +33,7 @@ public:
 
     void Log(const std::string &msg) {
         std::ostringstream prefix;
-        prefix << Date() << " - " << type_ << " [" << file_ << ":" << line_ << ":" << func_ << "()]";
+        prefix << Date() << " - " << type_ << " (" << func_ << "(...):" << file_ << ":" << line_ << ")";
         std::cerr << prefix.str().c_str() << " " << msg.c_str() << std::endl;
         if (type_ == "ASSERT" || type_ == "FAIL")
             abort();

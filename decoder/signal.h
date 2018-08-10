@@ -1,4 +1,7 @@
-// wujian@2018
+// wujian@2018.8
+
+// Compute spectrogram/fbank/mfcc acoustic features according to Kaldi's logic with less dependency
+// 
 
 #ifndef SIGNAL_H
 #define SIGNAL_H
@@ -20,14 +23,17 @@ void ComputeSpectrum(Float32 *realfft, Int32 dim, Float32 *spectrum, Bool apply_
 
 // Compute mel-filter coefficients
 void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins, Int32 sample_rate, 
-                    Int32 lower_bound, Int32 upper_bound, std::vector<std::vector<Float32> > *weights);
+                       Int32 lower_bound, Int32 upper_bound, std::vector<std::vector<Float32> > *weights);
 
 // Compute DCT transform matrix
 void ComputeDctMatrix(Float32 *dct_matrix_, Int32 num_rows, Int32 num_cols);
 
+// Each feature computer implement following functions:
+// FeatureDim(): which gives dimention of features
+// NumFrames(): which work out number of frames
+// ComputeFrame(): which compute feature for a single frame
 template<class Computer>
-Int32 ComputeFeature(Computer &computer, Float32 *signal, Int32 num_samps, 
-                        Float32 *addr, Int32 stride);
+Int32 ComputeFeature(Computer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
 struct FrameOpts {
     Int32 frame_length, frame_shift, sample_rate;
@@ -75,8 +81,7 @@ public:
     }
 
     // Copy Frame at time 'index' into assigned memory address
-    void FrameForIndex(Float32 *signal, Int32 num_samps, Int32 index,
-                       Float32 *frame, Float32 *raw_energy);
+    void FrameForIndex(Float32 *signal, Int32 num_samps, Int32 index, Float32 *frame, Float32 *raw_energy);
 
     // Compute number of frames given number of samples
     Int32 NumFrames(Int32 num_samps) {

@@ -117,7 +117,7 @@ void ComputeDctMatrix(Float32 *dct_matrix_, Int32 num_rows, Int32 num_cols) {
 
     for (Int32 j = 0; j < num_cols; j++) {
         dct_matrix_[j] = normalizer;
-        std::cerr << dct_matrix_[j] << (j == num_cols - 1 ? "\n" : " ");
+        // std::cerr << dct_matrix_[j] << (j == num_cols - 1 ? "\n" : " ");
     }
     normalizer = std::sqrt(2.0 / static_cast<Float32>(num_cols));
 
@@ -125,7 +125,7 @@ void ComputeDctMatrix(Float32 *dct_matrix_, Int32 num_rows, Int32 num_cols) {
         for (Int32 n = 0; n < num_cols; n++) {
             dct_matrix_[k * num_cols + n] = normalizer * 
                 std::cos(static_cast<Float64>(PI) / num_cols * (n + 0.5) * k);
-            std::cerr << dct_matrix_[k * num_cols + n] << (n == num_cols - 1 ? "\n": " ");
+            // std::cerr << dct_matrix_[k * num_cols + n] << (n == num_cols - 1 ? "\n": " ");
         }
 }
 
@@ -140,16 +140,14 @@ Int32 ComputeFeature(Computer &computer, Float32 *signal, Int32 num_samps, Float
 
 
 template
-Int32 ComputeFeature(SpectrogramComputer &computer, Float32 *signal, Int32 num_samps, 
-                        Float32 *addr, Int32 stride);
+Int32 ComputeFeature(SpectrogramComputer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
 template
-Int32 ComputeFeature(FbankComputer &computer, Float32 *signal, Int32 num_samps, 
-                        Float32 *addr, Int32 stride);
+Int32 ComputeFeature(FbankComputer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
 template
-Int32 ComputeFeature(MfccComputer &computer, Float32 *signal, Int32 num_samps, 
-                        Float32 *addr, Int32 stride);
+Int32 ComputeFeature(MfccComputer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
+
 /*
     1) Remove DC
     2) Preemphasize

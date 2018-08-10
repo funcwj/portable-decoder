@@ -67,12 +67,18 @@ void WriteBinaryBasicType(std::ostream &os, T t);
 
 void WriteToken(std::ostream &os, const char *token);
 
+void ReadToken(std::istream &is, std::string *token);
+
 void WriteToken(std::ostream &os, const std::string &token);
 
 void ExpectToken(std::istream &is, const char *token);
 
 void ExpectToken(std::istream &is, const std::string& token);
 
+
+void Seek(std::istream &is, Int64 off, std::ios_base::seekdir way);
+
+void Seek(std::ostream &os, Int64 off, std::ios_base::seekdir way);
 
 
 #endif 

@@ -2,6 +2,9 @@
 
 #include "io.h"
 
+void Seek(std::istream &is, Int64 off, std::ios_base::seekdir way) { is.seekg(off, way); }
+
+void Seek(std::ostream &os, Int64 off, std::ios_base::seekdir way) { os.seekp(off, way); } 
 
 void WriteBinary(std::ostream &os, const char *ptr, Int32 num_bytes) {
     os.write(ptr, num_bytes);
@@ -54,11 +57,19 @@ void WriteToken(std::ostream &os, const std::string &token) {
     ASSERT(!os.fail() && "WriteToken Failed!");
 }
 
+void ReadToken(std::istream &is, std::string *token) {
+    ASSERT(token);
+    is >> *token;
+    ASSERT(!is.fail() && "ReadToken Failed!");
+    ASSERT(isspace(is.peek()) && "ReadToken: Expect space after each token");
+    is.get();
+}
+
 void ExpectToken(std::istream &is, const char *token) {
     ASSERT(IsToken(token));
     std::string read_token;
     is >> read_token; is.get();
-    ASSERT(!is.fail() && "ReadToken Failed!");
+    ASSERT(!is.fail() && "ExpectToken Failed!");
     if (strcmp(read_token.c_str(), token) != 0)
         LOG_FAIL << "Expect token \'" << token << "\', but got " << read_token;
 }
@@ -67,7 +78,7 @@ void ExpectToken(std::istream &is, const std::string& token) {
     ASSERT(IsToken(token.c_str()));
     std::string read_token;
     is >> read_token; is.get();
-    ASSERT(!is.fail() && "ReadToken Failed!");
+    ASSERT(!is.fail() && "ExpectToken Failed!");
     if (strcmp(read_token.c_str(), token.c_str()) != 0)
         LOG_FAIL << "Expect token \'" << token << "\', but got " << read_token;
 }

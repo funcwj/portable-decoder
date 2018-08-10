@@ -6,7 +6,7 @@
 
 int main(int argc, char const *argv[]) {
     TransitionTable table;
-    ReadTransitionTable("tid.map", &table);
+    ReadTransitionTable("trans.tab", &table);
     LOG_INFO << "Read TransitionTable, num_tids = " << table.NumTransitionIds() 
             << ", num_pdfs = " << table.NumPdfs();
     return 0;

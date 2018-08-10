@@ -10,7 +10,7 @@ if(NOT DEFINED KALDI_ROOT)
     message(FATAL_ERROR "Can not find definition of KALDI_ROOT, export KALDI_ROOT=/path/to/kaldi first")
 endif()
 
-message(STATUS "defined KALDI_ROOT=" $ENV{KALDI_ROOT})
+message(STATUS "Define KALDI_ROOT=" $ENV{KALDI_ROOT})
 set(DEPEND_LIBS kaldi-fstext kaldi-base kaldi-util kaldi-hmm kaldi-matrix)
 
 add_definitions(-O3 -g -std=c++11)

@@ -12,9 +12,13 @@
 class FasterDecoder {
 public:
     FasterDecoder(const SimpleFst &fst, const TransitionTable &table, 
-                    Int32 min_active, Int32 max_active, Float32 beam):
+                    Int32 min_active = 200, Int32 max_active = 7000, Float32 beam = 15.0):
                     fst_(fst), table_(table), min_active_(min_active), 
-                    max_active_(max_active), beam_(beam) { }
+                    max_active_(max_active), beam_(beam) {
+        ASSERT(min_active_ < max_active_);
+        ASSERT(min_active_ > 0 && max_active_ > 1);
+        toks_.SetSize(1000);
+    }
 
     ~FasterDecoder() { ClearToks(toks_.Clear()); }
 
