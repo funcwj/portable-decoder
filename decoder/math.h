@@ -34,6 +34,8 @@ Float32 LogFloat32(Float32 linear);
 
 Float32 ToMelScale(Float32 linear);
 
+Float32 ToDB(Float32 linear);
+
 
 
 #endif 

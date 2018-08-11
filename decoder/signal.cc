@@ -15,6 +15,8 @@ std::string WindowToString(WindowType window) {
             return "hanning";
         case kRect:
             return "rectangle";
+        case kNone:
+            return "none";
     }
 }
 
@@ -148,6 +150,23 @@ Int32 ComputeFeature(FbankComputer &computer, Float32 *signal, Int32 num_samps, 
 template
 Int32 ComputeFeature(MfccComputer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
+// Fix frame on time t
+void FrameSplitter::FixFrame(Float32 *signal, Int32 t, Float32 *frame_addr) {
+    Int32 frame_length = frame_opts_.frame_length;
+    Int32 num_bytes = frame_length * sizeof(Float32);
+    Int32 offset_in_signal = t * frame_opts_.frame_shift - prev_discard_size_;
+    // if zero or positive
+    if (offset_in_signal >= 0)
+        memcpy(frame_addr, signal + offset_in_signal, num_bytes);
+    else {
+        ASSERT(frame_length + offset_in_signal);
+        // pad to online_use_[prev_discard_size_: ]
+        memcpy(online_use_ + prev_discard_size_, signal, 
+            (frame_length + offset_in_signal) * sizeof(Float32));
+        memcpy(frame_addr, online_use_ + prev_discard_size_ + offset_in_signal, num_bytes);
+    }
+}
+
 /*
     1) Remove DC
     2) Preemphasize
@@ -158,40 +177,54 @@ void FrameSplitter::FrameForIndex(Float32 *signal, Int32 num_samps, Int32 index,
     Int32 num_frames = NumFrames(num_samps);
     ASSERT(num_frames > index);
     // Copy to dest addr
-    memcpy(frame_addr, signal + index * frame_shift_, sizeof(Float32) * frame_length_);
-    Float32 dc = 0;
-    for (Int32 n = 0; n < frame_length_; n++)
-        dc += frame_addr[n];
-    // If use openblas
-    // energy = VdotV(frame_addr, frame_addr, frame_length_);
-    dc /= frame_length_;
-    // Remove DC
-    for (Int32 n = 0; n < frame_length_; n++)
-        frame_addr[n] -= dc;
+    FixFrame(signal, index, frame_addr);
+    // If last frame, cache discarded samples
+    if (index == num_frames - 1) {
+        // update prev_discard_size_
+        prev_discard_size_ = num_samps + prev_discard_size_ - num_frames * frame_opts_.frame_shift;
+        LOG_INFO << "Cache " << prev_discard_size_ << " discarded samples";
+        if (frame_opts_.frame_length > frame_opts_.frame_shift) {
+            ASSERT(prev_discard_size_);
+            memcpy(online_use_, signal + num_samps - prev_discard_size_, 
+                    sizeof(Float32) * prev_discard_size_);
+        }
+    }
+    if (frame_opts_.remove_dc) {
+        Float32 dc = 0;
+        for (Int32 n = 0; n < frame_opts_.frame_length; n++)
+            dc += frame_addr[n];
+        // If use openblas
+        // energy = VdotV(frame_addr, frame_addr, frame_length_);
+        dc /= frame_opts_.frame_length;
+        // Remove DC
+        for (Int32 n = 0; n < frame_opts_.frame_length; n++)
+            frame_addr[n] -= dc;
+    }
     // Compute raw energy after removing DC
     if (raw_energy) {
         Float32 energy = 0.0;
-        for (Int32 n = 0; n < frame_length_; n++)
+        for (Int32 n = 0; n < frame_opts_.frame_length; n++)
             energy += frame_addr[n] * frame_addr[n];
         *raw_energy = energy;
     }
     // Preemphasize
-    if (preemph_coeff_ != 0)
-        Preemphasize(frame_addr, frame_length_, preemph_coeff_);
+    if (frame_opts_.preemph_coeff != 0.0)
+        Preemphasize(frame_addr, frame_opts_.frame_length, frame_opts_.preemph_coeff);
     // Windowing
-    for (Int32 n = 0; n < frame_length_; n++)
-        frame_addr[n] = frame_addr[n] * window_[n];
+    if (frame_opts_.window_type != kNone)
+        for (Int32 n = 0; n < frame_opts_.frame_length; n++)
+            frame_addr[n] = frame_addr[n] * window_[n];
 }
 
 Float32 SpectrogramComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *spectrum_addr) {
-    Int32 num_frames = splitter->NumFrames(num_samps);
+    Int32 num_frames = splitter.NumFrames(num_samps);
     Float32 raw_energy;
     ASSERT(t < num_frames);
     // SetZero for padding windows
     memset(realfft_cache_, 0, sizeof(Float32) * padding_length_);
     memset(spectrum_addr, 0, sizeof(Float32) * FeatureDim());
     // Load current frame into cache
-    splitter->FrameForIndex(signal, num_samps, t, realfft_cache_, &raw_energy);
+    splitter.FrameForIndex(signal, num_samps, t, realfft_cache_, &raw_energy);
     // Run RealFFT
     fft_computer->RealFFT(realfft_cache_, padding_length_);
     // Compute (Log)(Power/Magnitude) spectrum
@@ -203,11 +236,11 @@ Float32 SpectrogramComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int3
 }
 
 Float32 FbankComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *fbank_addr) {
-    Int32 num_fft_bins = spectrogram_computer_->FeatureDim();
-    ASSERT(t < spectrogram_computer_->NumFrames(num_samps));
+    Int32 num_fft_bins = spectrogram_computer_.FeatureDim();
+    ASSERT(t < spectrogram_computer_.NumFrames(num_samps));
     memset(fbank_addr, 0, sizeof(Float32) * FeatureDim());
     // Compute linear-spectrogram, no energy
-    Float32 raw_energy = spectrogram_computer_->ComputeFrame(signal, num_samps, t, spectrum_cache_);
+    Float32 raw_energy = spectrogram_computer_.ComputeFrame(signal, num_samps, t, spectrum_cache_);
     // Weight spectrogram with mel coefficients
     for (Int32 f = 0; f < num_bins_; f++) {
         ASSERT(mel_coeff_[f].size() == num_fft_bins);
@@ -225,11 +258,11 @@ Float32 FbankComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, F
 
 
 Float32 MfccComputer::ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *mfcc_addr) {
-    ASSERT(t < fbank_computer->NumFrames(num_samps));
+    ASSERT(t < fbank_computer.NumFrames(num_samps));
     // Zero mfcc_addr
     memset(mfcc_addr, 0, sizeof(Float32) * FeatureDim());
-    Float32 raw_energy = fbank_computer->ComputeFrame(signal, num_samps, t, mel_energy_cache_);
-    Int32 num_mel_bins = fbank_computer->FeatureDim();
+    Float32 raw_energy = fbank_computer.ComputeFrame(signal, num_samps, t, mel_energy_cache_);
+    Int32 num_mel_bins = fbank_computer.FeatureDim();
     // mfcc = dct_matrix_ * mel_energy
     // dct_matrix_: only use first num_ceps rows
     for (Int32 i = 0; i < num_ceps_; i++) {

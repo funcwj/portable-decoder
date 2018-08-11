@@ -11,6 +11,7 @@ add_executable(test-feature test-feature.cc)
 add_executable(test-transition-table test-transition-table.cc)
 add_executable(test-decoder test-decoder.cc)
 add_executable(test-read-archive test-read-archive.cc)
+add_executable(test-online test-online.cc)
 
 target_link_libraries(test-fft-computer ${DECODER_LIB})
 target_link_libraries(test-io ${DECODER_LIB})
@@ -21,4 +22,4 @@ target_link_libraries(test-feature ${DECODER_LIB})
 target_link_libraries(test-transition-table ${DECODER_LIB})
 target_link_libraries(test-decoder ${DECODER_LIB})
 target_link_libraries(test-read-archive ${DECODER_LIB})
-
+target_link_libraries(test-online ${DECODER_LIB})

@@ -32,7 +32,8 @@ enum WindowType {
     kHann,
     kHamm,
     kRect,
-    kBlackMan
+    kBlackMan,
+    kNone
 };
 
 
