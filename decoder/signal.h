@@ -8,12 +8,16 @@
 
 #include "decoder/common.h"
 #include "decoder/fft-computer.h"
+#include "decoder/config.h"
 
 // Preemphasize function 
 void Preemphasize(Float32 *frame, Int32 frame_length, Float32 preemph_coeff);
 
 // Map WindowType to string
 std::string WindowToString(WindowType window);
+
+// Map string to WindowType
+WindowType StringToWindow(std::string window);
 
 // Compute window values
 void ComputeWindow(Int32 window_size, Float32 *window, WindowType window_type);
@@ -35,7 +39,9 @@ void ComputeDctMatrix(Float32 *dct_matrix_, Int32 num_rows, Int32 num_cols);
 template<class Computer>
 Int32 ComputeFeature(Computer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
-struct FrameOpts {
+// In order to use in Cython, I make it class instead of struct
+class FrameOpts {
+public:
     Int32 frame_length, frame_shift, sample_rate;
     WindowType window_type;
     Float32 preemph_coeff;
@@ -56,13 +62,24 @@ struct FrameOpts {
         ASSERT(preemph_coeff >= 0 && preemph_coeff < 1.0);
     }
 
+    void ParseConfigure(ConfigureParser *parser) {
+        parser->AddOptions("FrameOpts", "frame_length", &frame_length);
+        parser->AddOptions("FrameOpts", "frame_shift", &frame_shift);
+        parser->AddOptions("FrameOpts", "preemph_coeff", &preemph_coeff);
+        parser->AddOptions("FrameOpts", "sample_rate", &sample_rate);
+        parser->AddOptions("FrameOpts", "remove_dc", &remove_dc);
+        std::string window;
+        parser->AddOptions("FrameOpts", "window", &window);
+        window_type = StringToWindow(window);
+    }
+
     std::string Configure() {
         std::ostringstream oss;
-        oss << "--FrameOpts.frame-length=" << frame_length << std::endl;
-        oss << "--FrameOpts.frame-shift=" << frame_shift << std::endl;
-        oss << "--FrameOpts.preemph-coeff=" << preemph_coeff << std::endl;
-        oss << "--FrameOpts.sample-rate=" << sample_rate << std::endl;
-        oss << "--FrameOpts.remove-dc=" << (remove_dc ? "true": "false") << std::endl;
+        oss << "--FrameOpts.frame_length=" << frame_length << std::endl;
+        oss << "--FrameOpts.frame_shift=" << frame_shift << std::endl;
+        oss << "--FrameOpts.preemph_coeff=" << preemph_coeff << std::endl;
+        oss << "--FrameOpts.sample_rate=" << sample_rate << std::endl;
+        oss << "--FrameOpts.remove_dc=" << (remove_dc ? "true": "false") << std::endl;
         oss << "--FrameOpts.window=" << WindowToString(window_type) << std::endl;
         return oss.str();
     }
@@ -133,7 +150,8 @@ private:
     Int32 prev_discard_size_; 
 };
 
-struct SpectrogramOpts {
+class SpectrogramOpts {
+public:
     Bool apply_log, apply_pow, use_log_raw_energy;
     // Log-spectrogram or Linear-spectrogram
     // Power-spectrum or Magnitude spectrum
@@ -151,6 +169,13 @@ struct SpectrogramOpts {
             frame_opts(opts.frame_opts) { }
     
     void Check() const { frame_opts.Check(); }
+
+    void ParseConfigure(ConfigureParser *parser) {
+        frame_opts.ParseConfigure(parser);
+        parser->AddOptions("SpectrogramOpts", "apply_log", &apply_log);
+        parser->AddOptions("SpectrogramOpts", "apply_pow", &apply_pow);
+        parser->AddOptions("SpectrogramOpts", "use_log_raw_energy", &use_log_raw_energy);
+    }
 
     std::string Configure() {
         std::ostringstream oss;
@@ -200,7 +225,8 @@ protected:
     Bool apply_pow_, apply_log_, use_log_raw_energy_;
 };
 
-struct FbankOpts {
+class FbankOpts {
+public:
     Int32 num_mel_bins;     // Number of mel bins/Feature dim
     Int32 lower_bound, upper_bound; // lower/upper frequency bound
     Bool apply_log;         // Apply log on mel-energy
@@ -218,6 +244,15 @@ struct FbankOpts {
         spectrogram_opts.Check();
         ASSERT(num_mel_bins >= 3);
         ASSERT(lower_bound >= 0);
+    }
+
+    void ParseConfigure(ConfigureParser *parser) {
+        spectrogram_opts.ParseConfigure(parser);
+        spectrogram_opts.apply_log = spectrogram_opts.use_log_raw_energy = false;
+        parser->AddOptions("FbankOpts", "num_mel_bins", &num_mel_bins);
+        parser->AddOptions("FbankOpts", "lower_bound", &lower_bound);
+        parser->AddOptions("FbankOpts", "upper_bound", &upper_bound);
+        parser->AddOptions("FbankOpts", "apply_log", &apply_log);
     }
 
     std::string Configure() {
@@ -270,7 +305,8 @@ protected:
 };
 
 
-struct MfccOpts {
+class MfccOpts {
+public:
     Int32 num_ceps;     // Feature dim
     Bool use_energy;    // Replace C0 using energy
     Float32 cepstral_lifter;
@@ -288,6 +324,14 @@ struct MfccOpts {
     void Check() const {
         fbank_opts.Check();
         ASSERT(num_ceps >= 1);
+    }
+
+    void ParseConfigure(ConfigureParser *parser) {
+        fbank_opts.ParseConfigure(parser);
+        fbank_opts.spectrogram_opts.apply_pow = fbank_opts.apply_log = true;
+        parser->AddOptions("MfccOpts", "num_ceps", &num_ceps);
+        parser->AddOptions("MfccOpts", "use_energy", &use_energy);
+        parser->AddOptions("MfccOpts", "cepstral_lifter", &cepstral_lifter);
     }
 
     std::string Configure() {

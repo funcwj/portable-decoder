@@ -20,6 +20,15 @@ std::string WindowToString(WindowType window) {
     }
 }
 
+WindowType StringToWindow(std::string window) {
+    if (window == "blackman") return kBlackMan;
+    else if (window == "hamming") return kHamm;
+    else if (window == "hanning") return kHann;
+    else if (window == "rectangle") return kRect;
+    else if (window == "none") return kNone;
+    else LOG_FAIL << "Unknown type of window: " << window;
+}
+
 void ComputeWindow(Int32 window_size, Float32 *window, WindowType window_type) {
     Float32 a = PI2 / (window_size - 1);
     for (Int32 i = 0; i < window_size; i++) {
