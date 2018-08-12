@@ -18,12 +18,11 @@ void TestOnlineVad() {
 
     const Int32 N = 200;
     Float32 *egs = new Float32[N];
-    Int32 *vad_stats = new Int32[splitter.NumFrames(N)];
+    std::vector<Int32> vad_stats;
     for (Int32 n = 0; n < N; n++)
         egs[n] = n;
-    vad.Run(egs, N, vad_stats, splitter.NumFrames(N));
+    vad.Run(egs, N, &vad_stats, splitter.NumFrames(N));
     delete[] egs;
-    delete[] vad_stats;
 }
 
 void TestOnlineSplitter() {

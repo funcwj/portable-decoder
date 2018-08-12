@@ -2,6 +2,7 @@
 
 #include "decoder/common.h"
 
+// This class maintains relation between tid and pdfid
 class TransitionTable {
 public:
     TransitionTable(): num_tids_(-1), num_pdfs_(-1), table_(NULL) { }

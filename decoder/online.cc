@@ -34,22 +34,24 @@ Int32 EnergyVadWrapper::Run(Float32 energy) {
 }
 
 
-void EnergyVadWrapper::Run(Float32 *signal, Int32 num_samps, Int32 *vad_status, Int32 num_frames) {
+void EnergyVadWrapper::Run(Float32 *signal, Int32 num_samps, std::vector<Int32> *vad_status, Int32 num_frames) {
     Int32 check_num_frames = splitter_->NumFrames(num_samps);
+    vad_status->resize(num_frames);
     if (check_num_frames != num_frames) 
         LOG_FAIL << "Check frame configure in EnergyVadOpts, seems different from feature extractor";
+    Float32 energy;
     for (Int32 t = 0; t < num_frames; t++) {
-        Float32 energy;
         splitter_->FrameForIndex(signal, num_samps, t, frame_cache_, &energy);
         Int32 status = Run(energy / vad_opts_.frame_length);
-        vad_status[t] = status;
+        (*vad_status)[t] = status;
         // Traceback and reset vad flags
         if (active_trigger_) {
             active_trigger_ = false;
-            for (Int32 i = t + 1 - vad_opts_.transition_context; 
-                i <= t; i++) {
-                if (i >= 0) vad_status[t] = true;
-            }
+            // We can do it in high-level API
+            // for (Int32 i = t + 1 - vad_opts_.transition_context; 
+            //     i <= t; i++) {
+            //     if (i >= 0) vad_status[t] = true;
+            // }
         }
     }
 }

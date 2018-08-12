@@ -70,7 +70,7 @@ struct FrameOpts {
 
 
 // Using for feature extraction
-// I make it support for online model
+// I make it support for online scenario
 class FrameSplitter {
 public:
     FrameSplitter(const FrameOpts &opts): frame_opts_(opts), window_(NULL) {
@@ -97,6 +97,7 @@ public:
     void FrameForIndex(Float32 *signal, Int32 num_samps, Int32 index, Float32 *frame, Float32 *raw_energy);
 
     // Compute number of frames given number of samples
+    // Consider online scenario here
     Int32 NumFrames(Int32 num_samps) {
         Int32 num_frames = static_cast<Int32>((num_samps + prev_discard_size_ - frame_opts_.frame_length) 
                             / frame_opts_.frame_shift) + 1;

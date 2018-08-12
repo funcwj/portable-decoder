@@ -35,13 +35,13 @@ struct EnergyVadOpts {
 class EnergyVadWrapper {
 public:
     EnergyVadWrapper(const EnergyVadOpts vad_opts): vad_opts_(vad_opts) { 
-        // Initialize state
-        inner_steps_ = 0; inner_status_ = kSilence; active_trigger_ = false;
         // remove_dc=false
         FrameOpts frame_opts(vad_opts.frame_length, vad_opts.frame_shift, 8000, 0.0, kNone, false);
         vad_opts_.Check(); frame_opts.Check();
         splitter_ = new FrameSplitter(frame_opts);
         frame_cache_ = new Float32[vad_opts.frame_length];
+        // Initialize state
+        inner_steps_ = 0; inner_status_ = kSilence; active_trigger_ = false;
     }
     
     ~EnergyVadWrapper() {
@@ -51,10 +51,11 @@ public:
             delete[] frame_cache_;
     }
 
+    Bool Triggered() { return active_trigger_; }
     // Run one step
     Int32 Run(Float32 energy);
 
-    void Run(Float32 *signal, Int32 num_samps, Int32 *vad_status, Int32 num_frames);
+    void Run(Float32 *signal, Int32 num_samps, std::vector<Int32> *vad_status, Int32 num_frames);
 
 private:
     FrameSplitter *splitter_;
