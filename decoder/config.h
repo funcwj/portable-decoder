@@ -11,7 +11,8 @@
 class ConfigureParser {
 
 public:
-    ConfigureParser(const std::string &conf): conf_stream_(conf, std::ios::in) { 
+    ConfigureParser(const std::string &conf): conf_path_(conf), 
+                                              conf_stream_(conf, std::ios::in) { 
         if (!conf_stream_.is_open())
             LOG_FAIL << "Open configure file " << conf_path_ << " failed";
         LoadConfigure();

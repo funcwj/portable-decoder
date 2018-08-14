@@ -1,7 +1,7 @@
 // wujian@2018
 
 // A simple logger class
-
+// TODO: make it comparable with logging file
 
 #ifndef LOG_H
 #define LOG_H
@@ -17,8 +17,7 @@
 class Logger {
 public:
     Logger(const std::string &type, const char *func, const char *file, size_t line): 
-            type_(type), func_(func), 
-            line_(line), file_(BaseName(file)) {}
+            type_(type), func_(func), file_(BaseName(file)), line_(line) { }
     
     ~Logger() {
         std::string msg = oss_.str();

@@ -24,7 +24,7 @@ void TestMfcc() {
     LOG_INFO << "Compute mfcc for " << num_samples << " samples";
     Mat mfcc = Mat::Zero(num_frames, dim);
     LOG_INFO << mfcc.rows() << " x " << mfcc.cols() << "(" << mfcc.stride() << ")";
-    ComputeFeature(computer, egs.Data(), num_samples, mfcc.data(), mfcc.stride());
+    ComputeFeature(&computer, egs.Data(), num_samples, mfcc.data(), mfcc.stride());
     LOG_INFO << "Shape of mfcc: " << num_frames << " x " << dim;
     std::cout << mfcc << std::endl;
 }
@@ -46,7 +46,7 @@ void TestFBank() {
     LOG_INFO << "Compute fbank for " << num_samples << " samples";
     Mat fbank = Mat::Zero(num_frames, dim);
     LOG_INFO << fbank.rows() << " x " << fbank.cols() << "(" << fbank.stride() << ")";
-    ComputeFeature(computer, egs.Data(), num_samples, fbank.data(), fbank.stride());
+    ComputeFeature(&computer, egs.Data(), num_samples, fbank.data(), fbank.stride());
     LOG_INFO << "Shape of fbank: " << num_frames << " x " << dim;
     std::cout << fbank << std::endl;
 }
@@ -67,7 +67,7 @@ void TestSpectrogram() {
     LOG_INFO << "Compute spectrogram for " << num_samples << " samples";
     Mat spectrogram = Mat::Zero(num_frames, dim);
     LOG_INFO << spectrogram.rows() << " x " << spectrogram.cols() << "(" << spectrogram.stride() << ")";
-    ComputeFeature(computer, egs.Data(), num_samples, spectrogram.data(), spectrogram.stride());
+    ComputeFeature(&computer, egs.Data(), num_samples, spectrogram.data(), spectrogram.stride());
     LOG_INFO << "Shape of spectrogram: " << num_frames << " x " << dim;
     std::cout << spectrogram << std::endl;
 }

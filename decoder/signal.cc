@@ -26,7 +26,10 @@ WindowType StringToWindow(std::string window) {
     else if (window == "hanning") return kHann;
     else if (window == "rectangle") return kRect;
     else if (window == "none") return kNone;
-    else LOG_FAIL << "Unknown type of window: " << window;
+    else {
+        LOG_FAIL << "Unknown type of window: " << window;
+        return kNone;
+    }
 }
 
 void ComputeWindow(Int32 window_size, Float32 *window, WindowType window_type) {
@@ -141,23 +144,23 @@ void ComputeDctMatrix(Float32 *dct_matrix_, Int32 num_rows, Int32 num_cols) {
 }
 
 template<class Computer>
-Int32 ComputeFeature(Computer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride) {
-    ASSERT(computer.FeatureDim() <= stride);
-    Int32 num_frames = computer.NumFrames(num_samps);
+Int32 ComputeFeature(Computer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride) {
+    ASSERT(computer->FeatureDim() <= stride);
+    Int32 num_frames = computer->NumFrames(num_samps);
     for (Int32 t = 0; t < num_frames; t++)
-        computer.ComputeFrame(signal, num_samps, t, addr + t * stride);
+        computer->ComputeFrame(signal, num_samps, t, addr + t * stride);
     return num_frames;
 }
 
 
 template
-Int32 ComputeFeature(SpectrogramComputer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
+Int32 ComputeFeature(SpectrogramComputer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
 template
-Int32 ComputeFeature(FbankComputer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
+Int32 ComputeFeature(FbankComputer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
 template
-Int32 ComputeFeature(MfccComputer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
+Int32 ComputeFeature(MfccComputer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
 // Fix frame on time t
 void FrameSplitter::FixFrame(Float32 *signal, Int32 t, Float32 *frame_addr) {

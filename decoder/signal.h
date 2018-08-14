@@ -37,7 +37,7 @@ void ComputeDctMatrix(Float32 *dct_matrix_, Int32 num_rows, Int32 num_cols);
 // NumFrames(): which work out number of frames
 // ComputeFrame(): which compute feature for a single frame
 template<class Computer>
-Int32 ComputeFeature(Computer &computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
+Int32 ComputeFeature(Computer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
 // In order to use in Cython, I make it class instead of struct
 class FrameOpts {
@@ -50,12 +50,14 @@ public:
     FrameOpts(Int32 length = 400, Int32 shift = 160, Int32 frequency = 16000, 
                 Float32 coeff = 0.97, WindowType window = kHamm, 
                 Bool remove_dc = true): 
-            preemph_coeff(coeff), frame_length(length), frame_shift(shift), 
-            window_type(window), sample_rate(frequency), remove_dc(remove_dc) { }
+            frame_length(length), frame_shift(shift), sample_rate(frequency),
+            window_type(window), preemph_coeff(coeff), remove_dc(remove_dc) { }
 
-    FrameOpts(const FrameOpts& opts): preemph_coeff(opts.preemph_coeff), frame_length(opts.frame_length), 
-                frame_shift(opts.frame_shift), window_type(opts.window_type), 
-                sample_rate(opts.sample_rate), remove_dc(opts.remove_dc) { }
+    FrameOpts(const FrameOpts& opts): frame_length(opts.frame_length), 
+                frame_shift(opts.frame_shift), sample_rate(opts.sample_rate), 
+                window_type(opts.window_type), 
+                preemph_coeff(opts.preemph_coeff),
+                remove_dc(opts.remove_dc) { }
 
     void Check() const {
         ASSERT(sample_rate && frame_length >= frame_shift);
@@ -193,8 +195,8 @@ class SpectrogramComputer {
 public:
     SpectrogramComputer(const SpectrogramOpts &spectrogram_opts) : 
                         apply_pow_(spectrogram_opts.apply_pow), 
-                        use_log_raw_energy_(spectrogram_opts.use_log_raw_energy),
                         apply_log_(spectrogram_opts.apply_log),
+                        use_log_raw_energy_(spectrogram_opts.use_log_raw_energy),
                         splitter(spectrogram_opts.frame_opts) {
         padding_length_ = splitter.PaddingLength();
         fft_computer = new FFTComputer(padding_length_);
@@ -218,11 +220,11 @@ public:
     Int32 NumFrames(Int32 num_samps) { return splitter.NumFrames(num_samps); }
 
 protected:
+    Bool apply_pow_, apply_log_, use_log_raw_energy_;
     Int32 padding_length_;
     FrameSplitter splitter;
     FFTComputer *fft_computer;
     Float32 *realfft_cache_;
-    Bool apply_pow_, apply_log_, use_log_raw_energy_;
 };
 
 class FbankOpts {
@@ -270,8 +272,8 @@ public:
 class FbankComputer {
 public:
     FbankComputer(const FbankOpts &fbank_opts) : 
-                num_bins_(fbank_opts.num_mel_bins), apply_log_(fbank_opts.apply_log),
-                lower_bound_(fbank_opts.lower_bound),
+                num_bins_(fbank_opts.num_mel_bins), lower_bound_(fbank_opts.lower_bound),
+                apply_log_(fbank_opts.apply_log),
                 spectrogram_computer_(fbank_opts.spectrogram_opts) {
         // Check configures
         fbank_opts.Check();
@@ -297,29 +299,29 @@ public:
     Int32 NumFrames(Int32 num_samps) { return spectrogram_computer_.NumFrames(num_samps); }
 
 protected:
-    SpectrogramComputer spectrogram_computer_;
     Float32 *spectrum_cache_;
-    Int32 num_bins_, upper_bound_, lower_bound_;
+    Int32 num_bins_, lower_bound_, upper_bound_;
     Bool apply_log_;
     std::vector<std::vector<Float32> > mel_coeff_;
+    SpectrogramComputer spectrogram_computer_;
 };
 
 
 class MfccOpts {
-public:
+public:    
+    FbankOpts fbank_opts;
+
     Int32 num_ceps;     // Feature dim
     Bool use_energy;    // Replace C0 using energy
     Float32 cepstral_lifter;
 
-    FbankOpts fbank_opts;
-
-    MfccOpts(Int32 num_ceps = 13, Bool energy = true, Float32 cepstral = 22.0): cepstral_lifter(cepstral),
-                num_ceps(num_ceps), use_energy(energy) {
+    MfccOpts(Int32 num_ceps = 13, Bool energy = true, Float32 cepstral = 22.0): num_ceps(num_ceps), 
+            use_energy(energy), cepstral_lifter(cepstral) {
         fbank_opts.spectrogram_opts.apply_pow = fbank_opts.apply_log = true;
     }
         
-    MfccOpts(const FbankOpts opts): fbank_opts(opts), cepstral_lifter(23.0), 
-        num_ceps(13), use_energy(true) { }
+    MfccOpts(const FbankOpts opts): fbank_opts(opts), num_ceps(13), 
+        use_energy(true), cepstral_lifter(23.0) { }
 
     void Check() const {
         fbank_opts.Check();

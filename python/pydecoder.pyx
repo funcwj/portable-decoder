@@ -2,39 +2,29 @@
 
 
 cimport pydecoder
+cimport numpy as np 
+import numpy as pynp
 
-from typedef cimport kHamm, kHann, kRect, kBlackMan
 from libcpp.string cimport string
 
-supported_window = {
-    "hamming": kHamm,
-    "hanning": kHann,
-    "rectangle": kRect,
-    "blackman": kBlackMan
-}
+ctypedef np.float32_t F32
 
-cdef class PyFrameSplitter:
-    cdef pydecoder.FrameOpts frame_opts
+cdef class PyMfccComputer:
+    cdef pydecoder.MfccComputer *computer
 
-    def __cinit__(self, frame_length=400,
-                        frame_shift=160,
-                        sample_rate=16000, 
-                        preemph_coeff=0.97,
-                        window="hamming",
-                        remove_dc=True):
-        if window not in supported_window:
-            raise ValueError("Unsupported window type: {}".format(window))
-        self.frame_opts = FrameOpts(frame_length, 
-                                    frame_shift, 
-                                    sample_rate, 
-                                    preemph_coeff, 
-                                    supported_window[window], 
-                                    remove_dc)        
-        
-    def generate_config(self):
-        cdef string config = self.frame_opts.Configure()
-        py_bytes = <bytes>config
-        return py_bytes.decode()
+    def __cinit__(self, conf):
+        # from python bytes to string
+        cdef string mfcc_conf = <string>conf.encode("utf-8")
+        cdef pydecoder.ConfigureParser *parser = new ConfigureParser(mfcc_conf)
+        cdef pydecoder.MfccOpts opts
+        opts.ParseConfigure(parser)
+        self.computer = new MfccComputer(opts)
 
-    
+    def dim(self):
+        return self.computer.FeatureDim()
 
+    def compute(self, np.ndarray[F32, ndim=1] wav):
+        cdef Int32 num_frames = self.computer.NumFrames(wav.size)
+        cdef np.ndarray[F32, ndim=2] mfcc = pynp.zeros([num_frames, self.dim()], dtype=pynp.float32)
+        self.computer.ComputeFrame(<Float32*>wav.data, wav.size, 0, <Float32*>mfcc.data)
+        return mfcc
