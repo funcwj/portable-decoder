@@ -12,3 +12,4 @@ python/build
 python/*.so
 python/*.dylib
 python/*.cpp
+python/*.wav

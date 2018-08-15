@@ -1,5 +1,6 @@
 // wujian@2018
 
+// A simple memory pool to hold frequent used objects, such as Tokens
 
 #include <queue>
 #include <set>

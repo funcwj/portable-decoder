@@ -32,15 +32,31 @@ void ComputeMelFilters(Int32 num_fft_bins, Int32 num_mel_bins, Int32 sample_rate
 // Compute DCT transform matrix
 void ComputeDctMatrix(Float32 *dct_matrix_, Int32 num_rows, Int32 num_cols);
 
+class Options {
+public: 
+    virtual void Check() const = 0;
+    virtual void ParseConfigure(ConfigureParser *parser) = 0;
+    virtual std::string Configure() = 0;
+};
+
 // Each feature computer implement following functions:
 // FeatureDim(): which gives dimention of features
 // NumFrames(): which work out number of frames
 // ComputeFrame(): which compute feature for a single frame
-template<class Computer>
+class Computer {
+public:
+    virtual Float32 ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *spectrum_addr) = 0;
+    virtual Int32 FeatureDim() = 0;
+    virtual Int32 NumFrames(Int32 num_samps) = 0;
+    virtual ~Computer() { };
+};
+
+// template<class Computer>
 Int32 ComputeFeature(Computer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
+
 // In order to use in Cython, I make it class instead of struct
-class FrameOpts {
+class FrameOpts: public Options {
 public:
     Int32 frame_length, frame_shift, sample_rate;
     WindowType window_type;
@@ -152,7 +168,7 @@ private:
     Int32 prev_discard_size_; 
 };
 
-class SpectrogramOpts {
+class SpectrogramOpts: public Options {
 public:
     Bool apply_log, apply_pow, use_log_raw_energy;
     // Log-spectrogram or Linear-spectrogram
@@ -191,7 +207,7 @@ public:
 
 
 // SpectrogramComputer for ASR
-class SpectrogramComputer {
+class SpectrogramComputer: public Computer {
 public:
     SpectrogramComputer(const SpectrogramOpts &spectrogram_opts) : 
                         apply_pow_(spectrogram_opts.apply_pow), 
@@ -227,7 +243,7 @@ protected:
     Float32 *realfft_cache_;
 };
 
-class FbankOpts {
+class FbankOpts: public Options {
 public:
     Int32 num_mel_bins;     // Number of mel bins/Feature dim
     Int32 lower_bound, upper_bound; // lower/upper frequency bound
@@ -269,7 +285,7 @@ public:
 };
 
 // FbankComputer use SpectrogramComputer to extract linear-spectrogram
-class FbankComputer {
+class FbankComputer: public Computer {
 public:
     FbankComputer(const FbankOpts &fbank_opts) : 
                 num_bins_(fbank_opts.num_mel_bins), lower_bound_(fbank_opts.lower_bound),
@@ -307,7 +323,7 @@ protected:
 };
 
 
-class MfccOpts {
+class MfccOpts: public Options {
 public:    
     FbankOpts fbank_opts;
 
@@ -346,7 +362,7 @@ public:
     }
 };
 
-class MfccComputer {
+class MfccComputer: public Computer {
 public:
     MfccComputer(const MfccOpts &mfcc_opts): num_ceps_(mfcc_opts.num_ceps), use_energy_(mfcc_opts.use_energy),
                 cepstral_lifter_(mfcc_opts.cepstral_lifter), fbank_computer(mfcc_opts.fbank_opts) {

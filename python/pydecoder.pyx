@@ -9,22 +9,23 @@ from libcpp.string cimport string
 
 ctypedef np.float32_t F32
 
-cdef class PyMfccComputer:
-    cdef pydecoder.MfccComputer *computer
+cdef class PyFeatureExtractor:
+    cdef pydecoder.FeatureExtractor *extractor 
 
-    def __cinit__(self, conf):
-        # from python bytes to string
-        cdef string mfcc_conf = <string>conf.encode("utf-8")
-        cdef pydecoder.ConfigureParser *parser = new ConfigureParser(mfcc_conf)
-        cdef pydecoder.MfccOpts opts
-        opts.ParseConfigure(parser)
-        self.computer = new MfccComputer(opts)
-
-    def dim(self):
-        return self.computer.FeatureDim()
+    def __cinit__(self, conf, feat):
+        cdef string conf_str = <string>conf.encode("utf-8"), \
+                    feat_str = <string>feat.encode("utf-8")
+        self.extractor = new FeatureExtractor(conf_str, feat_str)
 
     def compute(self, np.ndarray[F32, ndim=1] wav):
-        cdef Int32 num_frames = self.computer.NumFrames(wav.size)
-        cdef np.ndarray[F32, ndim=2] mfcc = pynp.zeros([num_frames, self.dim()], dtype=pynp.float32)
-        self.computer.ComputeFrame(<Float32*>wav.data, wav.size, 0, <Float32*>mfcc.data)
-        return mfcc
+        cdef Int32 num_frames = self.extractor.NumFrames(wav.size)
+        cdef np.ndarray[F32, ndim=2] feats = pynp.zeros([num_frames, \
+                                                        self.extractor.FeatureDim()], \
+                                                        dtype=pynp.float32)
+        cdef Float32 *feats_ptr = <Float32*>feats.data
+        cdef Int32 stride = feats.strides[-1]
+        self.extractor.Compute(<Float32*>wav.data, wav.size, <Float32*>feats.data, stride)
+        return feats
+
+    def __dealloc__(self):
+        del self.extractor

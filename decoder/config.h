@@ -6,7 +6,7 @@
 #include <map>
 #include "decoder/common.h"
 
-// Parse configure for acoustic feature cause too many parameters
+// Parse configure for acoustic feature because there are too many parameters
 
 class ConfigureParser {
 
@@ -17,10 +17,17 @@ public:
             LOG_FAIL << "Open configure file " << conf_path_ << " failed";
         LoadConfigure();
     }
-
+    
+    // TODO: handle unprocessed values --DONE
     ~ConfigureParser() { 
         if (conf_stream_.is_open())
-            conf_stream_.close();    
+            conf_stream_.close();
+        for (std::map<std::string, bool>::iterator p = status_.begin(); 
+                p != status_.end(); p++) {
+            if (!p->second)
+                LOG_WARN << "Options \"" << p->first << "\" haven't been used, seems " 
+                         << "using incorrect feature type";
+        }
     }
 
     // Could be optimized 
@@ -48,6 +55,8 @@ private:
     std::fstream conf_stream_;
 
     ConfigureMap table_;
+    // To track unregisted values
+    std::map<std::string, bool> status_;
 };
 
 #endif 

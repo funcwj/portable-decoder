@@ -143,7 +143,7 @@ void ComputeDctMatrix(Float32 *dct_matrix_, Int32 num_rows, Int32 num_cols) {
         }
 }
 
-template<class Computer>
+// template<class Computer>
 Int32 ComputeFeature(Computer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride) {
     ASSERT(computer->FeatureDim() <= stride);
     Int32 num_frames = computer->NumFrames(num_samps);
@@ -153,14 +153,14 @@ Int32 ComputeFeature(Computer *computer, Float32 *signal, Int32 num_samps, Float
 }
 
 
-template
-Int32 ComputeFeature(SpectrogramComputer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
+// template
+// Int32 ComputeFeature(SpectrogramComputer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);// 
 
-template
-Int32 ComputeFeature(FbankComputer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
+// template
+// Int32 ComputeFeature(FbankComputer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);// 
 
-template
-Int32 ComputeFeature(MfccComputer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
+// template
+// Int32 ComputeFeature(MfccComputer *computer, Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
 // Fix frame on time t
 void FrameSplitter::FixFrame(Float32 *signal, Int32 t, Float32 *frame_addr) {

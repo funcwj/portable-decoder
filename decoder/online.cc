@@ -4,6 +4,16 @@
 
 #include "decoder/online.h"
 
+FeatureType StringToFeatureType(const std::string &type) {
+    if (type == "spectrogram")
+        return kSpectrogram;
+    else if (type == "fbank")
+        return kFbank;
+    else if (type == "mfcc")
+        return kMfcc;
+    else
+        return kUnkown;
+}
 
 Int32 EnergyVadWrapper::Run(Float32 energy) { 
     Float32 db = ToDB(energy);

@@ -6,9 +6,19 @@
 #define ONLINE_H
 
 #include "decoder/common.h"
+#include "decoder/config.h"
 #include "decoder/signal.h"
 
 enum VadStatus { kSilence, kActive };
+
+enum FeatureType { 
+    kSpectrogram,
+    kFbank,
+    kMfcc,
+    kUnkown
+};
+
+FeatureType StringToFeatureType(const std::string &type);
 
 struct EnergyVadOpts {
     Float32 threshold_in_db;
@@ -66,6 +76,67 @@ private:
     Float32 *frame_cache_;
 };
 
+// Simple wrapper
+class FeatureExtractor {
+public:
+    FeatureExtractor(const std::string& conf, const std::string &type):
+                    computer_(NULL) { 
+        type_ = StringToFeatureType(type);
+        ConfigureParser parser(conf);
+        // initialize
+        SpectrogramOpts spectrogram_opts;
+        FbankOpts fbank_opts;
+        MfccOpts mfcc_opts;
+        switch (type_) {
+            case kSpectrogram:
+                LOG_INFO << "Create FeatureExtractor(Spectrogram)";
+                spectrogram_opts.ParseConfigure(&parser);
+                computer_ = new SpectrogramComputer(spectrogram_opts);
+                break;
+            case kFbank:
+                LOG_INFO << "Create FeatureExtractor(Fbank)";
+                fbank_opts.ParseConfigure(&parser);
+                computer_ = new FbankComputer(fbank_opts);
+                break;
+            case kMfcc:
+                LOG_INFO << "Create FeatureExtractor(Mfcc)";
+                mfcc_opts.ParseConfigure(&parser);
+                computer_ = new MfccComputer(mfcc_opts);
+                break;
+            case kUnkown:
+                LOG_FAIL << "Unknown feature type: " << type;
+                break;
+        }
+    }
 
+    Int32 Compute(Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride) {
+        Int32 num_frames = -1;
+        switch (type_) {
+            case kSpectrogram:
+            case kFbank:
+            case kMfcc:
+                num_frames = ComputeFeature(computer_, signal, num_samps, addr, stride);
+                break;
+            case kUnkown:
+                LOG_FAIL << "Init FeatureExtractor with unknown feature type, stop compute";
+                break;
+        }
+        return num_frames;
+    }
+
+
+    Int32 FeatureDim() { return computer_->FeatureDim(); }
+
+    Int32 NumFrames(Int32 num_samps) { return computer_->NumFrames(num_samps); }
+
+    ~FeatureExtractor() {
+        if (computer_ != NULL)
+            delete computer_;
+    }
+
+private:
+    FeatureType type_;
+    Computer *computer_;
+};
 
 #endif

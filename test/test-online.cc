@@ -2,6 +2,7 @@
 
 #include <Eigen/Dense>
 
+#include "decoder/wave.h"
 #include "decoder/signal.h"
 #include "decoder/online.h"
 
@@ -48,9 +49,24 @@ void TestOnlineSplitter() {
     delete[] egs;
 }
 
+void TestExtractor() {
+    FeatureExtractor extractor("mfcc.conf", "mfcc");
+
+    Wave egs;
+    ReadWave("egs.wav", &egs);
+    Int32 num_samples = egs.NumSamples();
+    Int32 num_frames = extractor.NumFrames(num_samples), dim = extractor.FeatureDim();
+    LOG_INFO << "Compute mfcc for " << num_samples << " samples";
+    Mat mfcc = Mat::Zero(num_frames, dim);
+    LOG_INFO << mfcc.rows() << " x " << mfcc.cols() << "(" << mfcc.stride() << ")";
+    extractor.Compute(egs.Data(), num_samples, mfcc.data(), mfcc.stride());
+    LOG_INFO << "Shape of mfcc: " << num_frames << " x " << dim;
+    std::cout << mfcc << std::endl;
+}
 
 int main(int argc, char const *argv[]) {
     // TestOnlineSplitter();
-    TestOnlineVad();
+    // TestOnlineVad();
+    TestExtractor();
     return 0;
 }

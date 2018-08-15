@@ -3,14 +3,16 @@
 # wujian@2018
 
 import numpy as np
-from pydecoder import PyMfccComputer
+import scipy.io.wavfile as wf
+
+from pydecoder import PyFeatureExtractor
 
 def test_computor():
-    computer = PyMfccComputer("mfcc.conf")
-    wave = np.random.rand(1000).astype(np.float32)
+    computer = PyFeatureExtractor("mfcc.conf", "fbank")
+    _, wave = wf.read("egs.wav")
+    wave = wave.astype(np.float32)
     mfcc = computer.compute(wave)
-    print("Mfcc dimentions: {}".format(mfcc.shape))
-    print("Mfcc dimentions:\n")
+    print("Shape of mfcc: {}".format(mfcc.shape))
     print(mfcc)
 
     

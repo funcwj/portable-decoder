@@ -22,6 +22,10 @@ void ConfigureParser::LoadConfigure() {
             arg_name = line.substr(point_pos + 1, equal_pos - point_pos - 1),
             arg_value = line.substr(equal_pos + 1, line.size() - equal_pos);
         table_[conf_name].push_back(std::make_pair(arg_name, arg_value));
+        std::string key = "--" + conf_name + "." + arg_name;
+        if (status_.count(key))
+            LOG_FAIL << "Duplicated key " << key << " existed";
+        status_[key] = false;
     }
 }
 
@@ -56,62 +60,58 @@ void ConfigureParser::AddOptions(const std::string &opt, const std::string &name
     if (!table_.count(opt)) 
         return;
     const std::vector<std::pair<std::string, std::string> > &vec = table_[opt];
-    Int32 count_dup = 0;
     for (std::pair<std::string, std::string> p: vec) {
         if (p.first == name) {
-            count_dup++;
             *value = std::stof(p.second);
+            std::string key = "--" + opt + "." + name;
+            status_[key] = true;
+            break;
         }
     }
-    if (count_dup > 1)
-        LOG_FAIL << "Configure --" << opt << "." << name << " more than once";
 }
 
 void ConfigureParser::AddOptions(const std::string &opt, const std::string &name, Int32 *value) {
     if (!table_.count(opt)) 
         return;
     const std::vector<std::pair<std::string, std::string> > &vec = table_[opt];
-    Int32 count_dup = 0;
     for (std::pair<std::string, std::string> p: vec) {
         if (p.first == name) {
-            count_dup++;
             *value = std::stoi(p.second);
+            std::string key = "--" + opt + "." + name;
+            status_[key] = true;
+            break;
         }
     }
-    if (count_dup > 1)
-        LOG_FAIL << "Configure --" << opt << "." << name << " more than once";
 }
 
 void ConfigureParser::AddOptions(const std::string &opt, const std::string &name, Bool *value) {
     if (!table_.count(opt)) 
         return;
     const std::vector<std::pair<std::string, std::string> > &vec = table_[opt];
-    Int32 count_dup = 0;
     for (std::pair<std::string, std::string> p: vec) {
         if (p.first == name) {
-            count_dup++;
             if (p.second != "true" && p.second != "false")
                 LOG_FAIL << "Invalid value for Bool type: " << p.second;
             if (p.second == "true")  *value = true;
             if (p.second == "false") *value = false;
+            std::string key = "--" + opt + "." + name;
+            status_[key] = true;
+            break;
         }
     }
-    if (count_dup > 1)
-        LOG_FAIL << "Configure --" << opt << "." << name << " more than once";
 }
 
 void ConfigureParser::AddOptions(const std::string &opt, const std::string &name, std::string *value) {
     if (!table_.count(opt)) 
         return;
     const std::vector<std::pair<std::string, std::string> > &vec = table_[opt];
-    Int32 count_dup = 0;
     for (std::pair<std::string, std::string> p: vec) {
         if (p.first == name) {
-            count_dup++;
             value->clear();
             value->assign(p.second);
+            std::string key = "--" + opt + "." + name;
+            status_[key] = true;
+            break;
         }
     }
-    if (count_dup > 1)
-        LOG_FAIL << "Configure --" << opt << "." << name << " more than once";
 }
