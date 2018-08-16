@@ -34,12 +34,12 @@ struct EnergyVadOpts {
                                             transition_context(opts.transition_context),
                                             frame_length(opts.frame_length),
                                             frame_shift(opts.frame_shift) { }
-
     void Check() { 
         ASSERT(transition_context >= 1);
         ASSERT(frame_length > frame_shift);
         ASSERT(frame_length > 0 && frame_shift > 0);
     }
+
 };
 
 class EnergyVadWrapper {
@@ -51,7 +51,7 @@ public:
         splitter_ = new FrameSplitter(frame_opts);
         frame_cache_ = new Float32[vad_opts.frame_length];
         // Initialize state
-        inner_steps_ = 0; inner_status_ = kSilence; active_trigger_ = false;
+        inner_steps_ = 0; inner_status_ = kSilence;
     }
     
     ~EnergyVadWrapper() {
@@ -61,18 +61,19 @@ public:
             delete[] frame_cache_;
     }
 
-    Bool Triggered() { return active_trigger_; }
-    // Run one step
-    Int32 Run(Float32 energy);
+    Int32 Context() { return vad_opts_.transition_context; }
 
-    void Run(Float32 *signal, Int32 num_samps, std::vector<Int32> *vad_status, Int32 num_frames);
+    Bool Run(Float32 *signal, Int32 num_samps, std::vector<Bool> *vad_status);
 
 private:
+    // Run one step
+    Bool Run(Float32 energy);
+
     FrameSplitter *splitter_;
     EnergyVadOpts vad_opts_;
+
     VadStatus inner_status_;
     Int32 inner_steps_;
-    Bool active_trigger_;
     Float32 *frame_cache_;
 };
 
@@ -137,6 +138,43 @@ public:
 private:
     FeatureType type_;
     Computer *computer_;
+};
+
+struct ContextOpts {
+    Int32 left_context, right_context;
+    std::string cmvn;
+
+    ContextOpts(Int32 left = 0, Int32 right = 0): left_context(left), right_context(right), cmvn("") { }
+    
+    ContextOpts(const ContextOpts &opts): left_context(opts.left_context), right_context(opts.right_context),
+                                        cmvn(opts.cmvn) { }
+};
+
+// Using vad
+class OnlineExtractor {
+public:
+    OnlineExtractor(const std::string &conf, const std::string &type, 
+                    EnergyVadOpts vad_opts): extractor_(conf, type), vad_(vad_opts) {
+        speech_buffer_.reserve(buffer_size);
+        status_buffer_.reserve(buffer_size);
+    }
+
+    Int32 NumFramesReady();
+
+    Int32 Dim() { return extractor_.FeatureDim(); }
+
+    void Receive(Float32 *wav, Int32 num_samps);
+
+    void Compute(Float32 *feats, Int32 stride);
+    
+private:
+    const Int32 buffer_size = 160 * 500;
+
+    FeatureExtractor extractor_;
+    EnergyVadWrapper vad_;
+    
+    std::vector<Float32> speech_buffer_;
+    std::vector<Bool> status_buffer_;
 };
 
 #endif
