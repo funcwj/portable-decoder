@@ -17,6 +17,7 @@ FeatureType StringToFeatureType(const std::string &type) {
 
 Bool EnergyVadWrapper::Run(Float32 energy) { 
     Float32 db = ToDB(energy);
+    LOG_INFO << "Energy: " << db << " dB";
     Bool active = db > vad_opts_.threshold_in_db;
     ASSERT(inner_steps_ >= 0 && 
         "inner_steps_ < 0, bugs existed in function EnergyVadWrapper::Run(Float32 energy)");
@@ -27,6 +28,7 @@ Bool EnergyVadWrapper::Run(Float32 energy) {
                 if (inner_steps_ == 
                     vad_opts_.transition_context) {
                     inner_status_ = kActive;
+                    LOG_INFO << "ACTIVE";
                 }
             }
             break;
@@ -35,6 +37,7 @@ Bool EnergyVadWrapper::Run(Float32 energy) {
                 inner_steps_--;
                 if (inner_steps_ == 0) {
                     inner_status_ = kSilence;
+                    LOG_INFO << "SILENCE";
                 }
             }
             break;
@@ -73,6 +76,9 @@ void OnlineExtractor::Compute(Float32 *feats, Int32 stride) {
         }
     }
     ASSERT(frame_index == NumFramesReady());
+    // Clear buffer
+    speech_buffer_.clear();
+    status_buffer_.clear();
 }
 
 Int32 OnlineExtractor::NumFramesReady() { 

@@ -25,6 +25,11 @@ void FasterDecoder::DecodeFrame(Float32 *loglikes, Int32 num_pdfs) {
     ProcessNonemitting(weight_cutoff);
 }
 
+void FasterDecoder::Decode(Float32 *loglikes, Int32 num_frames, Int32 stride, Int32 num_pdfs) {
+    for (Int32 t = 0; t < num_frames; t++)
+        DecodeFrame(loglikes + t * stride, num_pdfs);
+}
+
 // Gets the weight cutoff.  Also counts the active tokens.
 Float64 FasterDecoder::GetCutoff(Elem *list_head, UInt64 *tok_count,
                                 Float32 *adaptive_beam, Elem **best_elem) {
@@ -42,10 +47,10 @@ Float64 FasterDecoder::GetCutoff(Elem *list_head, UInt64 *tok_count,
         if (adaptive_beam != NULL) *adaptive_beam = beam_;
         return best_cost + beam_;
     } else {
-        tmp_array_.clear();
+        cost_active_.clear();
         for (Elem *e = list_head; e != NULL; e = e->tail, count++) {
             Float64 w = e->val->cost_;
-            tmp_array_.push_back(w);
+            cost_active_.push_back(w);
             if (w < best_cost) {
                 best_cost = w;
                 if (best_elem) *best_elem = e;
@@ -57,22 +62,22 @@ Float64 FasterDecoder::GetCutoff(Elem *list_head, UInt64 *tok_count,
         Float64 beam_cutoff = best_cost + beam_, min_active_cutoff = FLOAT64_INF,
             max_active_cutoff = FLOAT64_INF;
 
-        if (tmp_array_.size() > static_cast<UInt64>(max_active_)) {
-            std::nth_element(tmp_array_.begin(), tmp_array_.begin() + max_active_, tmp_array_.end());
-            max_active_cutoff = tmp_array_[max_active_];
+        if (cost_active_.size() > static_cast<UInt64>(max_active_)) {
+            std::nth_element(cost_active_.begin(), cost_active_.begin() + max_active_, cost_active_.end());
+            max_active_cutoff = cost_active_[max_active_];
         }
         if (max_active_cutoff < beam_cutoff) { // max_active is tighter than beam.
             if (adaptive_beam)
                 *adaptive_beam = max_active_cutoff - best_cost + 0.5;
             return max_active_cutoff;
         }
-        if (tmp_array_.size() > static_cast<UInt64>(min_active_)) {
+        if (cost_active_.size() > static_cast<UInt64>(min_active_)) {
             if (min_active_ == 0) min_active_cutoff = best_cost;
             else {
-                std::nth_element(tmp_array_.begin(), tmp_array_.begin() + min_active_,
-                                tmp_array_.size() > static_cast<UInt64>(max_active_) ?
-                                tmp_array_.begin() + max_active_: tmp_array_.end());
-                min_active_cutoff = tmp_array_[min_active_];
+                std::nth_element(cost_active_.begin(), cost_active_.begin() + min_active_,
+                                cost_active_.size() > static_cast<UInt64>(max_active_) ?
+                                cost_active_.begin() + max_active_: cost_active_.end());
+                min_active_cutoff = cost_active_[min_active_];
             }
         }
         if (min_active_cutoff > beam_cutoff) { // min_active is looser than beam.
@@ -94,24 +99,18 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
     Elem *best_elem = NULL;
     Float64 weight_cutoff = GetCutoff(last_toks, &tok_cnt, &adaptive_beam, &best_elem);
     // LOG_INFO << tok_cnt << " tokens active.";
-    // This makes sure the hash is always big enough.
     UInt64 new_sz = static_cast<UInt64>(static_cast<Float32>(tok_cnt) * 2);
     if (new_sz > toks_.Size())
         toks_.SetSize(new_sz);
 
-    // This is the cutoff we use after adding in the log-likes (i.e.
-    // for the next frame).  This is a bound on the cutoff we will use
-    // on the next frame.
     Float64 next_weight_cutoff = FLOAT64_INF;
 
-    // First process the best token to get a hopefully
-    // reasonably tight bound on the next cutoff.
     if (best_elem) {
         StateId state = best_elem->key;
         Token *tok = best_elem->val;
         for (ArcIterator aiter(fst_, state); !aiter.Done(); aiter.Next()) {
             const Arc &arc = aiter.Value();
-            if (arc.ilabel != 0) {  // we'd propagate..
+            if (arc.ilabel != 0) {
                 // -loglikes[table_.TransitionIdToPdf(arc.ilabel)] * acoustic_scale_;
                 Float32 ac_cost = NegativeLoglikelihood(loglikes, arc.ilabel);
                 Float64 new_weight = arc.weight + tok->cost_ + ac_cost;
@@ -121,14 +120,10 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
         }
     }
 
-    // the tokens are now owned here, in last_toks, and the hash is empty.
-    // 'owned' is a complex thing here; the point is we need to call TokenDelete
-    // on each elem 'e' to let toks_ know we're done with them.
     for (Elem *e = last_toks, *e_tail; e != NULL; e = e_tail) {
-        // because we delete "e" as we go.
         StateId state = e->key;
         Token *tok = e->val;
-        if (tok->cost_ < weight_cutoff) {  // not pruned.
+        if (tok->cost_ < weight_cutoff) {
             ASSERT(state == tok->arc_.nextstate);
             for (ArcIterator aiter(fst_, state); !aiter.Done(); aiter.Next()) {
                 Arc arc = aiter.Value();
@@ -146,10 +141,10 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
                             toks_.Insert(arc.nextstate, new_tok);
                         } else {
                             if ( e_found->val->cost_ > new_tok->cost_ ) {
-                                Token::TokenDelete(e_found->val);
+                                FreeToken(e_found->val);
                                 e_found->val = new_tok;
                             } else {
-                                Token::TokenDelete(new_tok);
+                                FreeToken(new_tok);
                             }
                         }
                     }
@@ -157,7 +152,7 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
             }
         }
         e_tail = e->tail;
-        Token::TokenDelete(e->val);
+        FreeToken(e->val);
         toks_.Delete(e);
     }
     num_frames_decoded_++;
@@ -174,29 +169,28 @@ void FasterDecoder::ProcessNonemitting(Float64 cutoff) {
         StateId state = queue_.back();
         queue_.pop_back();
         Token *tok = toks_.Find(state)->val;  
-        // would segfault if state not in toks_ but this can't happen.
-        if (tok->cost_ > cutoff) // Don't bother processing successors.
+        if (tok->cost_ > cutoff)
             continue;
 
         ASSERT(tok != NULL && state == tok->arc_.nextstate);
         for (ArcIterator aiter(fst_, state); !aiter.Done(); aiter.Next()) {
             const Arc &arc = aiter.Value();
-            if (arc.ilabel == 0) {  // propagate nonemitting only...
+            if (arc.ilabel == 0) {
                 Token *new_tok = new Token(arc, tok);
-                if (new_tok->cost_ > cutoff) {  // prune
-                    Token::TokenDelete(new_tok);
+                if (new_tok->cost_ > cutoff) {
+                    FreeToken(new_tok);
                 } else {
                     Elem *e_found = toks_.Find(arc.nextstate);
                     if (e_found == NULL) {
                         toks_.Insert(arc.nextstate, new_tok);
                         queue_.push_back(arc.nextstate);
                     } else {
-                        if ( e_found->val->cost_ > new_tok->cost_ ) {
-                            Token::TokenDelete(e_found->val);
+                        if (e_found->val->cost_ > new_tok->cost_ ) {
+                            FreeToken(e_found->val);
                             e_found->val = new_tok;
                             queue_.push_back(arc.nextstate);
                         } else {
-                            Token::TokenDelete(new_tok);
+                            FreeToken(new_tok);
                         }
                     }
                 }
@@ -254,8 +248,19 @@ Bool FasterDecoder::GetBestPath(std::vector<Int32> *word_sequence) {
 
 void FasterDecoder::ClearToks(Elem *list) {
     for (Elem *e = list, *e_tail; e != NULL; e = e_tail) {
-        Token::TokenDelete(e->val);
+        FreeToken(e->val);
         e_tail = e->tail;
+        // delete Elem
         toks_.Delete(e);
+    }
+}
+
+void FasterDecoder::FreeToken(Token *tok) {
+    // traceback
+    while (--tok->ref_count_ == 0) {
+        Token *prev = tok->prev_;
+        delete tok; // delete or other free function
+        if (prev == NULL) return;
+        else tok = prev;
     }
 }

@@ -33,7 +33,7 @@ public:
     }
 
     void Free(T *addr) {
-        if (!IsFreed(addr)) {
+        if (!IsFree(addr)) {
             unused_.push(addr);
             Set(addr, true);
         } else {
@@ -79,7 +79,7 @@ private:
             LOG_FAIL << "Seems some bugs existed";
     }
 
-    Bool IsFreed(T *addr) {
+    Bool IsFree(T *addr) {
         Int32 index, offset;
         Index(addr, &index, &offset);
         return free_map_[index][offset];

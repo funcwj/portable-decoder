@@ -1,9 +1,12 @@
 // decoder/online.h
 
 // wujian@2018
+// TODO: improve vad or use in python level
 
 #ifndef ONLINE_H
 #define ONLINE_H
+
+#include <queue>
 
 #include "decoder/common.h"
 #include "decoder/config.h"
@@ -20,6 +23,7 @@ enum FeatureType {
 
 FeatureType StringToFeatureType(const std::string &type);
 
+// EnergyVad performed bad
 struct EnergyVadOpts {
     Float32 threshold_in_db;
     Int32 transition_context;
@@ -47,7 +51,8 @@ public:
     EnergyVadWrapper(const EnergyVadOpts vad_opts): vad_opts_(vad_opts) { 
         // remove_dc=false
         FrameOpts frame_opts(vad_opts.frame_length, vad_opts.frame_shift, 8000, 0.0, kNone, false);
-        vad_opts_.Check(); frame_opts.Check();
+        frame_opts.Check();
+        vad_opts_.Check();
         splitter_ = new FrameSplitter(frame_opts);
         frame_cache_ = new Float32[vad_opts.frame_length];
         // Initialize state
@@ -68,13 +73,77 @@ public:
 private:
     // Run one step
     Bool Run(Float32 energy);
-
+    // To compute raw energy
     FrameSplitter *splitter_;
     EnergyVadOpts vad_opts_;
 
     VadStatus inner_status_;
     Int32 inner_steps_;
     Float32 *frame_cache_;
+};
+
+FrameOpts frame_opts_for_v2(400, 160, 8000, 0.0, kNone, false);
+
+class EnergyVadWrapperV2 {
+public:
+    EnergyVadWrapperV2(Int32 context, Float32 threshold): vad_context_(context), threshold_in_db_(threshold),
+                                                        speech_frames_(0), splitter_(frame_opts_for_v2) {
+        frame_ = new Float32[frame_opts_for_v2.frame_length];
+    }
+
+    ~EnergyVadWrapperV2() { 
+        if (frame_)
+            delete[] frame_;
+    }
+
+    Int32 Context() { return vad_context_ / 2; }
+
+    void Run(Float32 *signal, Int32 num_samps, std::vector<Bool> *vad_status) {
+        Int32 num_frames = splitter_.NumFrames(num_samps);
+        vad_status->resize(num_frames);
+        Float32 energy;
+        for (Int32 t = 0; t < num_frames; t++) {
+            splitter_.FrameForIndex(signal, num_samps, t, frame_, &energy);
+            Bool status = Run(energy / 400);
+            (*vad_status)[t] = status;
+        }
+    }
+
+private:
+
+    Bool Run(Float32 energy) {
+        ASSERT(speech_frames_ <= vad_context_ && speech_frames_ >= 0);
+        Float32 db = ToDB(energy);
+        Bool is_speech = db > threshold_in_db_;
+        Int32 context_frames = 0;
+        if (context_status_.size() < vad_context_) {
+            context_status_.push(is_speech);
+            speech_frames_ += (is_speech ? 1: 0);
+            context_frames = context_status_.size();
+        } else {
+            Bool pop_status = context_status_.front();
+            context_status_.pop();
+            // is speech
+            if (pop_status && !is_speech)
+                speech_frames_--;
+            if (!pop_status && is_speech)
+                speech_frames_++;
+            context_status_.push(is_speech);
+            context_frames = vad_context_;
+        }
+        Bool status = (static_cast<Float32>(speech_frames_) / context_frames >= 0.5);
+        LOG_INFO << "Energy: " << db << ", status: " << status << " speech frames: " << speech_frames_;
+        return status;
+    }
+
+    Int32 vad_context_;
+    Float32 threshold_in_db_;
+    // Number of speech frames in context window
+    Int32 speech_frames_;
+    FrameSplitter splitter_;
+    Float32 *frame_;
+
+    std::queue<Bool> context_status_;
 };
 
 // Simple wrapper
@@ -150,7 +219,7 @@ struct ContextOpts {
                                         cmvn(opts.cmvn) { }
 };
 
-// Using vad
+// Using vad, not well enough
 class OnlineExtractor {
 public:
     OnlineExtractor(const std::string &conf, const std::string &type, 

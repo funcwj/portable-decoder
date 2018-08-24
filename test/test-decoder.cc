@@ -54,7 +54,9 @@ int main(int argc, char const *argv[]) {
     ReadTransitionTable("trans.tab", &table);
     SimpleFst fst;
     ReadSimpleFst("graph.fst", &fst);
-    FasterDecoder decoder(fst, table);
+    DecodeOpts opts("decode.conf");
+    std::cerr << "Decode options: \n" << opts.Configure();
+    FasterDecoder decoder(fst, table, opts);
 
     BinaryInput bo("50.ark");
     Int32 count = 0, num_frames, num_pdfs;

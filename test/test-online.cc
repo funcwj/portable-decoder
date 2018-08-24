@@ -1,6 +1,7 @@
 // wujian@2018
 
 #include <Eigen/Dense>
+#include <sstream>
 
 #include "decoder/wave.h"
 #include "decoder/signal.h"
@@ -11,19 +12,33 @@ using namespace Eigen;
 using Mat = Matrix<Float32, Dynamic, Dynamic, RowMajor>;
 
 void TestOnlineVad() {
-    EnergyVadOpts vad_opts(20, 10, 10, 7);
-    EnergyVadWrapper vad(vad_opts);
+    // tune energy threshold
+    // EnergyVadOpts vad_opts(15, 10, 400, 160);
+    // EnergyVadWrapper vad(vad_opts);
+    EnergyVadWrapperV2 vad(20, 10);
 
-    FrameOpts frame_opts(10, 7, 4000, 0.0, kNone, false);
-    FrameSplitter splitter(frame_opts);
+    Wave egs;
+    ReadWave("vad.wav", &egs);
 
-    const Int32 N = 200;
-    Float32 *egs = new Float32[N];
-    std::vector<Int32> vad_stats;
-    for (Int32 n = 0; n < N; n++)
-        egs[n] = n;
-    vad.Run(egs, N, &vad_stats, splitter.NumFrames(N));
-    delete[] egs;
+    std::vector<Bool> vad_status;
+    Float32 *data = egs.Data();
+    vad.Run(data, egs.NumSamples(), &vad_status);
+
+    std::vector<Int32> segments;
+    for (Int32 i = 1; i < vad_status.size(); i++) {
+        if (vad_status[i] && !vad_status[i - 1])
+            segments.push_back(std::max(i - vad.Context(), 0));
+        if (!vad_status[i] && vad_status[i])
+            segments.push_back(std::max(i - vad.Context(), 0));
+    }
+    for (Int32 i = 0; i < segments.size() / 2; i++) {
+        Int32 beg = segments[i * 2] * 160, end = segments[i * 2 + 1] * 160;
+        LOG_INFO << "[" << segments[i * 2] << ", " << segments[i * 2 + 1] << "]";
+        Wave wav(data + beg, end - beg + 1);
+        std::stringstream ss;
+        ss << "vad." << i << ".wav";
+        WriteWave(ss.str(), wav);
+    }
 }
 
 void TestOnlineSplitter() {
@@ -66,7 +81,7 @@ void TestExtractor() {
 
 int main(int argc, char const *argv[]) {
     // TestOnlineSplitter();
-    // TestOnlineVad();
-    TestExtractor();
+    TestOnlineVad();
+    // TestExtractor();
     return 0;
 }
