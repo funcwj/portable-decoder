@@ -13,6 +13,7 @@ void FasterDecoder::Reset() {
     toks_.Insert(start_state, new Token(dummy_arc, NULL));
     ProcessNonemitting(std::numeric_limits<Float64>::max());
     num_frames_decoded_ = 0;
+    reset_ = true;
 }
 
 
@@ -21,13 +22,17 @@ void FasterDecoder::DecodeFrame(Float32 *loglikes, Int32 num_pdfs) {
         LOG_FAIL << "It seems that dimention of loglikes do not equal to number of pdfs, "
                  << num_pdfs << " vs " << table_.NumPdfs();
     }
+    if (!reset_)
+        LOG_FAIL << "Need call Reset() first to initialize decoder";
     Float64 weight_cutoff = ProcessEmitting(loglikes, num_pdfs);
     ProcessNonemitting(weight_cutoff);
 }
 
 void FasterDecoder::Decode(Float32 *loglikes, Int32 num_frames, Int32 stride, Int32 num_pdfs) {
-    for (Int32 t = 0; t < num_frames; t++)
+    for (Int32 t = 0; t < num_frames; t++) {
+        // LOG_INFO << "Decode frame " << t;
         DecodeFrame(loglikes + t * stride, num_pdfs);
+    }
 }
 
 // Gets the weight cutoff.  Also counts the active tokens.

@@ -21,8 +21,9 @@ void TestOfflineDecode(FasterDecoder &decoder, Float32 *loglikes, Int32 num_fram
                         Int32 num_pdfs, std::vector<Int32> *word_ids) {
     word_ids->clear();
     decoder.Reset();
-    for (Int32 t = 0; t < num_frames; t++)
-        decoder.DecodeFrame(loglikes + t * num_pdfs, num_pdfs);
+    decoder.Decode(loglikes, num_frames, num_pdfs, num_pdfs);
+    // for (Int32 t = 0; t < num_frames; t++)
+    // decoder.DecodeFrame(loglikes + t * num_pdfs, num_pdfs);
     ASSERT(decoder.NumDecodedFrames() == num_frames);
     decoder.GetBestPath(word_ids);
 }
@@ -58,7 +59,7 @@ int main(int argc, char const *argv[]) {
     std::cerr << "Decode options: \n" << opts.Configure();
     FasterDecoder decoder(fst, table, opts);
 
-    BinaryInput bo("50.ark");
+    BinaryInput bo("posts.ref.ark");
     Int32 count = 0, num_frames, num_pdfs;
     std::string utt_id;
     std::vector<Int32> word_ids;
@@ -74,11 +75,11 @@ int main(int argc, char const *argv[]) {
         LOG_INFO << "Decode utterance(offline) " << utt_id << ": cost " << timer.Elapsed() << "s";
         for (Int32 i = 0; i < word_ids.size(); i++)
             std::cout << (i == 0 ? utt_id : "") << " " << word_ids[i] << (i == word_ids.size() - 1 ? "\n": "");
-        timer.Reset();
-        TestOnlineDecode(decoder, loglikes, num_frames, num_pdfs, &word_ids);
-        LOG_INFO << "Decode utterance(online)  " << utt_id << ": cost " << timer.Elapsed() << "s";
-        for (Int32 i = 0; i < word_ids.size(); i++)
-            std::cout << (i == 0 ? utt_id : "") << " " << word_ids[i] << (i == word_ids.size() - 1 ? "\n": "");
+        // timer.Reset();
+        // TestOnlineDecode(decoder, loglikes, num_frames, num_pdfs, &word_ids);
+        // LOG_INFO << "Decode utterance(online)  " << utt_id << ": cost " << timer.Elapsed() << "s";
+        // for (Int32 i = 0; i < word_ids.size(); i++)
+        //     std::cout << (i == 0 ? utt_id : "") << " " << word_ids[i] << (i == word_ids.size() - 1 ? "\n": "");
         count++;
         delete[] loglikes;
     }

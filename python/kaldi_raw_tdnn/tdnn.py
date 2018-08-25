@@ -2,19 +2,21 @@
 
 # wujian@2018
 
-"""
-Demo: inference in pytorch using kaldi's parameters(TDNN)
-"""
-
 import operator
+import os
 
-from iobase import read_common_mat, read_common_float_vec, read_token, read_ark
 import torch as th
 import torch.nn.functional as F
+
+from .iobase import read_common_mat, read_common_float_vec, read_token, read_ark
+
+debug = False
 
 
 def splice_feats(x, context):
     T, D = x.shape
+    if not T:
+        raise ValueError("Could not splice for empty features")
     C = (context[0] + 1 + context[1])
     s = th.zeros(T, D * C, dtype=x.dtype)
     for t in range(T):
@@ -68,11 +70,23 @@ class NonLinear(object):
         return self.f(x)
 
 
+class LogSoftmax(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, x):
+        if x.dim() != 2:
+            dim = x.shape[-1]
+            x = x.view(-1, dim)
+        return F.log_softmax(x, dim=-1)
+
+
 class TDNN(object):
-    def __init__(self, tdnn_conf, param_path, feature_dim=40):
+    def __init__(self, tdnn_conf="", param="final.param", feature_dim=40):
         self.context = self._parse_tdnn_config(tdnn_conf)
-        print("Parsed context: {}".format(self.context))
-        self.component = self.from_param(param_path)
+        if debug:
+            print("Parsed context: {}".format(self.context))
+        self.component = self.from_param(param)
         self.check()
         self.feature_dim = feature_dim
 
@@ -107,8 +121,9 @@ class TDNN(object):
         context_width = -context[0] + context[-1] + 1
         batch_size, num_frames, feature_dim = x.shape
         subsamp_frames = num_frames - context_width + 1
-        print("Reduce {:d} frames to {:d} frames".format(
-            num_frames, subsamp_frames))
+        if debug:
+            print("Reduce {:d} frames to {:d} frames".format(
+                num_frames, subsamp_frames))
         samp_size = len(context)
         if samp_size == 1:
             return x
@@ -122,6 +137,14 @@ class TDNN(object):
                 assert (t + c <= num_frames)
                 y[:, t, i * feature_dim:(i + 1) * feature_dim] = x[:, t + c, :]
         return y
+
+    def compute_output(self, feats):
+        if not isinstance(feats, th.FloatTensor):
+            feats = th.tensor(feats, dtype=th.float32)
+        tdnn_ctx = self.compute_context()
+        tdnn_in = splice_feats(feats, tdnn_ctx)
+        loglikes = self(tdnn_in)
+        return loglikes.numpy()
 
     def __call__(self, x):
         ctx = self.compute_context()
@@ -162,6 +185,10 @@ class TDNN(object):
         def to_tensor(x):
             return th.tensor(x, dtype=th.float32)
 
+        if not os.path.exists(param):
+            raise FileNotFoundError(
+                "Not found TDNN's parameter file: {}".format(param))
+
         component = []
         with open(param, "rb") as fd:
             while True:
@@ -171,19 +198,28 @@ class TDNN(object):
                 if token == "Linear":
                     weight = read_common_mat(fd)
                     bias = read_common_float_vec(fd)
-                    print("(Linear) weight: {:d} x {:d}, bias: {:d}".format(
-                        weight.shape[0], weight.shape[1], bias.size))
+                    if debug:
+                        print(
+                            "(Linear) weight: {:d} x {:d}, bias: {:d}".format(
+                                weight.shape[0], weight.shape[1], bias.size))
                     component.append(
                         Linear(to_tensor(weight), to_tensor(bias)))
                 elif token == "BatchNorm":
                     scale = read_common_float_vec(fd)
                     offset = read_common_float_vec(fd)
-                    print("(BatchNorm) scale: {:d}, offset: {:d}".format(
-                        scale.size, offset.size))
+                    if debug:
+                        print("(BatchNorm) scale: {:d}, offset: {:d}".format(
+                            scale.size, offset.size))
                     component.append(
                         BatchNorm1D(to_tensor(scale), to_tensor(offset)))
                 elif token == "ReLU":
+                    if debug:
+                        print("(ReLU)")
                     component.append(NonLinear("ReLU"))
+                elif token == "LogSoftmax":
+                    if debug:
+                        print("LogSoftmax")
+                    component.append(LogSoftmax())
                 else:
                     print("Unknown token: {}".format(token))
         return component
@@ -198,19 +234,5 @@ def run_demo():
     print(tdnn(x).shape)
 
 
-def run_egs():
-    tdnn_conf = "-2,-1,0,1,2;0;-1,0,2;-3,0,3;-7,0,2;-3,0,3;0;0"
-    param = "596.param"
-    feature_dim = 40
-    tdnn = TDNN(tdnn_conf, param, feature_dim=feature_dim)
-
-    with open("egs.ark", "rb") as ark:
-        for key, mat in read_ark(ark):
-            print("Runing for {}...".format(key))
-            context_in = splice_feats(
-                th.tensor(mat, dtype=th.float32), tdnn.compute_context())
-            output = tdnn(context_in)
-            print(output[10])
-
 if __name__ == "__main__":
-    run_egs()
+    run_demo()

@@ -9,11 +9,4 @@ cdef extern from "decoder/type.h":
     ctypedef float  Float32
     ctypedef double Float64
 
-    ctypedef bool Bool 
-    
-    cdef enum WindowType:
-        kHann
-        kHamm
-        kRect
-        kBlackMan
-        kNone
+    ctypedef bool Bool

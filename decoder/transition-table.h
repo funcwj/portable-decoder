@@ -13,6 +13,11 @@ public:
         memcpy(table_, table.Table(), sizeof(Int32) * num_tids_);
     }
     
+    TransitionTable(const std::string &fname) {
+        BinaryInput bi(fname);
+        Read(bi.Stream());
+    }
+
     ~TransitionTable() {
         if (table_)
             delete[] table_;

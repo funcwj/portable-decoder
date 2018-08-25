@@ -53,6 +53,7 @@ public:
                     acoustic_scale_(acwt),  word_penalty_(penalty) {
         toks_.SetSize(1000);
         Check();
+        reset_ = false;
     }
 
     FasterDecoder(const SimpleFst &fst, const TransitionTable &table, const DecodeOpts &opts): 
@@ -61,6 +62,17 @@ public:
                     acoustic_scale_(opts.acwt), word_penalty_(opts.penalty) {
         toks_.SetSize(1000);
         Check();
+        reset_ = false;
+    }
+
+    FasterDecoder(const std::string &str_fst, const std::string &str_table, const std::string &conf):
+        fst_(str_fst), table_(str_table) {
+        DecodeOpts opts(conf);
+        min_active_ = opts.min_active, max_active_ = opts.max_active;
+        beam_ = opts.beam, acoustic_scale_ = opts.acwt, word_penalty_ = opts.penalty;
+        toks_.SetSize(1000);
+        Check();
+        reset_ = false;
     }
 
     ~FasterDecoder() { ClearToks(toks_.Clear()); }
@@ -122,11 +134,13 @@ private:
     std::vector<StateId> queue_;
     std::vector<Float32> cost_active_;
 
-    Float32 beam_;
-    Float32 acoustic_scale_, word_penalty_; // acwt and word penalty
-    Int32 max_active_, min_active_;
-
     SimpleFst fst_;
     TransitionTable table_;
+
+    Int32 min_active_, max_active_;
+    Float32 beam_;
+    Float32 acoustic_scale_, word_penalty_; // acwt and word penalty
+
     Int32 num_frames_decoded_;
+    Bool reset_;
 };

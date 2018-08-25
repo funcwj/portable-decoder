@@ -8,4 +8,4 @@ python setup.py build_ext --inplace
 # cp ../lib/libdecoder.* .
 # fix rpath on macbook
 install_name_tool -add_rpath ../lib pydecoder.cpython-36m-darwin.so
-python egs.py
+# python egs.py

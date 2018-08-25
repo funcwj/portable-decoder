@@ -86,6 +86,11 @@ public:
     SimpleFst(): start_(NoStateId) {}
 
     SimpleFst(const SimpleFst &fst);
+
+    SimpleFst(const std::string &fname) {
+        BinaryInput bi(fname);
+        Read(bi.Stream());
+    }
     
     ~SimpleFst() {
         for (State *state: states_) {
@@ -191,8 +196,6 @@ private:
     const Arc *arc_ptr_;
 };
 
-
 void ReadSimpleFst(const std::string &filename, SimpleFst *fst);
-
 
 #endif

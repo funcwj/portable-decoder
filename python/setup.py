@@ -2,7 +2,7 @@
 
 # wujian@2018
 
-import os 
+import os
 
 import numpy as np
 
@@ -14,7 +14,7 @@ cur_dir = os.getcwd()
 
 include_dirs = [
     "{}/../".format(cur_dir),
-    np.get_include(),   # include for numpy
+    np.get_include(),  # include for numpy
 ]
 
 library_dirs = [
@@ -26,7 +26,7 @@ depend_libs = [
 ]
 
 complie_args = [
-    "-std=c++11", # important
+    "-std=c++11",  # important
 ]
 
 extensions = Extension(
@@ -36,11 +36,13 @@ extensions = Extension(
     include_dirs=include_dirs,
     library_dirs=library_dirs,
     libraries=depend_libs,
-    sources=["pydecoder.pyx"]
-)
+    sources=["pydecoder.pyx"])
 
 setup(
     name="simple decoder",
+    version="0.1",
+    license="Apache V2",
+    keywords=["speech recognition", "decoder"],
     ext_modules=cythonize([extensions]),
     author="Jian Wu",
     author_email="funcwj@foxmail.com",

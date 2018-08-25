@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
 
         const char *usage = 
             "Copy TDNN parameters from Kaldi's raw nnet3 model, "
-            "which aims for propagating through pytorch.\n"
+            "which aims for propagating through pytorch(support few component now).\n"
             "\n"
             "Usage: copy-nnet3-linear <nnet3-mdl> <nnet3-params>\n"
             "\n";
@@ -35,10 +35,12 @@ int main(int argc, char *argv[]) {
         ReadKaldiObject(nnet_rxfilename, &raw_nnet);
         // compute batchnorm statstics
         SetBatchnormTestMode(true, &raw_nnet);
+        // no use
+        SetDropoutTestMode(true, &raw_nnet);
 
         int32 num_components = raw_nnet.NumComponents();
         std::cout << "Number Components: " << num_components << std::endl;
-
+        // For pure TDNN, it's enough
         for (int32 i = 0; i < num_components; i++) {
             Component *c = raw_nnet.GetComponent(i);
             const std::string &type = c->Type();
@@ -66,6 +68,8 @@ int main(int argc, char *argv[]) {
                 offset.Write(os, true);
             } else if (type == "RectifiedLinearComponent") {
                 WriteToken(os, true, "ReLU");
+            } else if (type == "LogSoftmaxComponent") {
+                WriteToken(os, true, "LogSoftmax");
             } else {
                 KALDI_LOG << type << ": skipped, do nothing.";
             }

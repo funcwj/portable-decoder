@@ -13,3 +13,6 @@ python/*.so
 python/*.dylib
 python/*.cpp
 python/*.wav
+python/asset
+python/__pycache__
+python/kaldi_raw_tdnn/__pycache__
