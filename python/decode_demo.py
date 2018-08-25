@@ -54,6 +54,8 @@ def decoder_demo():
     tdnn = TDNN(**tdnn_kwargs)
 
     for wav in glob.glob("asset/wav/*.wav"):
+        # clear cached samples
+        computer.reset()
         # read wave in int16
         _, samp_int16 = wf.read(wav)
         samp_float32 = samp_int16.astype(np.float32)

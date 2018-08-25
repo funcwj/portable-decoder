@@ -48,6 +48,7 @@ public:
     virtual Float32 ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *spectrum_addr) = 0;
     virtual Int32 FeatureDim() = 0;
     virtual Int32 NumFrames(Int32 num_samps) = 0;
+    virtual void Reset() = 0;
     virtual ~Computer() { };
 };
 
@@ -235,6 +236,8 @@ public:
 
     Int32 NumFrames(Int32 num_samps) { return splitter.NumFrames(num_samps); }
 
+    void Reset() { splitter.Reset(); }
+
 protected:
     Bool apply_pow_, apply_log_, use_log_raw_energy_;
     Int32 padding_length_;
@@ -308,6 +311,8 @@ public:
             delete[] spectrum_cache_;
     }
     
+    void Reset() { spectrogram_computer_.Reset(); }
+
     Float32 ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *fbank_addr);
 
     Int32 FeatureDim() { return num_bins_; }
@@ -389,6 +394,8 @@ public:
         if (mel_energy_cache_)
             delete[] mel_energy_cache_;
     }
+
+    void Reset() { fbank_computer.Reset(); }
 
     Float32 ComputeFrame(Float32 *signal, Int32 num_samps, Int32 t, Float32 *mfcc_addr);
 

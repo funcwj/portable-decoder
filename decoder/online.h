@@ -194,6 +194,7 @@ public:
         return num_frames;
     }
 
+    void Reset() { computer_->Reset(); }
 
     Int32 FeatureDim() { return computer_->FeatureDim(); }
 

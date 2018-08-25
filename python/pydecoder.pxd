@@ -12,6 +12,7 @@ cdef extern from "decoder/online.h":
         Int32 Compute(Float32*, Int32, Float32*, Int32) except +
         Int32 FeatureDim()
         Int32 NumFrames(Int32 num_samps)
+        void Reset()
 
 # wrappers for decoder  
 cdef extern from "decoder/decoder.h":

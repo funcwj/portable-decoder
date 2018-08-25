@@ -23,6 +23,9 @@ cdef class PyFeatureExtractor:
     def __dealloc__(self):
         del self.extractor
 
+    def reset(self):
+        self.extractor.Reset()
+
     def compute(self, np.ndarray[F32, ndim=1] wav):
         cdef Int32 num_frames = self.extractor.NumFrames(wav.size)
         cdef np.ndarray[F32, ndim=2] feats = pynp.zeros([num_frames, \

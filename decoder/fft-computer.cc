@@ -57,7 +57,10 @@ void FFTComputer::ComplexFFT(Float32 *cplx_values, Int32 num_samples, bool inver
 
 
 void FFTComputer::RealFFT(Float32 *real_values, Int32 num_samples) {
-    ASSERT(num_samples == register_size_);
+    if (num_samples != register_size_) {
+        LOG_FAIL << "Assert num_samples == register_size_ failed, "
+                 << num_samples << " vs " << register_size_;
+    }
 
     Int32 n = num_samples >> 1, s = register_size_ / num_samples;
     memcpy(cplx_cache_, real_values, sizeof(Float32) * num_samples);
