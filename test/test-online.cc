@@ -11,6 +11,7 @@ using namespace Eigen;
 
 using Mat = Matrix<Float32, Dynamic, Dynamic, RowMajor>;
 
+/*
 void TestOnlineVad() {
     // tune energy threshold
     // EnergyVadOpts vad_opts(15, 10, 400, 160);
@@ -40,6 +41,7 @@ void TestOnlineVad() {
         WriteWave(ss.str(), wav);
     }
 }
+*/
 
 void TestOnlineSplitter() {
     FrameOpts frame_opts(10, 7, 4000, 0.0, kNone, false);
@@ -81,7 +83,7 @@ void TestExtractor() {
 
 int main(int argc, char const *argv[]) {
     // TestOnlineSplitter();
-    TestOnlineVad();
-    // TestExtractor();
+    // TestOnlineVad();
+    TestExtractor();
     return 0;
 }

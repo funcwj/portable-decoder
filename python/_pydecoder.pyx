@@ -1,12 +1,12 @@
 # wujian@2018
 
-
-cimport pydecoder
 cimport numpy as np 
 import numpy as pynp
 
 from libcpp.string cimport string
 from libcpp.vector cimport vector
+
+cimport _pydecoder as pydecoder
 
 ctypedef np.float32_t F32
 

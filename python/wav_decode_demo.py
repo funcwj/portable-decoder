@@ -2,33 +2,21 @@
 
 # wujian@2018
 """
-Demo: offline decoding
+Demo: decoding from raw waveform
 """
 import os
-import glob
 
+import argparse
 import numpy as np
 import torch as th
-import scipy.io.wavfile as wf
 
-from pydecoder import PyFeatureExtractor
+from pydecoder import PyFeatureExtractor, UtteranceDecoder
 
-from kaldi_raw_tdnn.tdnn import TDNN
-from decoder import OfflineDecoder
-
-
-def filekey(path):
-    fname = os.path.basename(path)
-    if not fname:
-        raise ValueError("{}(Is directory path?)".format(path))
-    token = fname.split(".")
-    if len(token) == 1:
-        return token[0]
-    else:
-        return '.'.join(token[:-1])
+from kaldi_helper.tdnn import TDNN
+from utils import WaveReader
 
 
-def decoder_demo():
+def uttdecoder_demo(egs_scp):
     # decoder
     decoder_kwargs = {
         "graph": "asset/graph.fst",
@@ -49,21 +37,23 @@ def decoder_demo():
     computer = PyFeatureExtractor(feature_kwargs["conf"],
                                   feature_kwargs["type"])
     # decoder instance
-    decoder = OfflineDecoder(**decoder_kwargs)
+    decoder = UtteranceDecoder(**decoder_kwargs)
     # network instance
     tdnn = TDNN(**tdnn_kwargs)
 
-    for wav in glob.glob("asset/wav/*.wav"):
-        # clear cached samples
-        computer.reset()
-        # read wave in int16
-        _, samp_int16 = wf.read(wav)
-        samp_float32 = samp_int16.astype(np.float32)
-        fbank = computer.compute(samp_float32)
+    reader = WaveReader(egs_scp)
+    for key, samps in reader:
+        computer.reset()  # clear cached samples
+        fbank = computer.compute(samps)
         loglikes = tdnn.compute_output(fbank)
         words = decoder.decode(loglikes)
-        print("{} {}".format(filekey(wav), words))
+        print("{} {}".format(key, words))
 
 
 if __name__ == "__main__":
-    decoder_demo()
+    parser = argparse.ArgumentParser(
+        description="Command to decode from raw waveform using inner configures")
+    parser.add_argument(
+        "wav_scp", type=str, help="Path of wav.scp for decoding")
+    args = parser.parse_args()
+    uttdecoder_demo(args.wav_scp)

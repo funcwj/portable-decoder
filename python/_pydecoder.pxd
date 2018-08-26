@@ -1,9 +1,17 @@
 # wujian@2018
 
-from typedef cimport Int32, Float32, Bool
-
 from libcpp.string cimport string
 from libcpp.vector cimport vector
+
+from libc.stdint cimport *
+from libcpp cimport bool
+
+cdef extern from "decoder/type.h":
+    ctypedef int32_t Int32
+    ctypedef int64_t Int64
+    ctypedef float  Float32
+    ctypedef double Float64
+    ctypedef bool Bool
 
 # wrappers for feature extractor
 cdef extern from "decoder/online.h":

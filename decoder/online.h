@@ -1,7 +1,8 @@
 // decoder/online.h
 
 // wujian@2018
-// TODO: improve vad or use in python level
+// TODO: improve vad or use py-webrtcvad in python scripts
+// py-webrtcvad: https://github.com/wiseman/py-webrtcvad
 
 #ifndef ONLINE_H
 #define ONLINE_H
@@ -23,7 +24,8 @@ enum FeatureType {
 
 FeatureType StringToFeatureType(const std::string &type);
 
-// EnergyVad performed bad
+// EnergyVad: performed bad
+/*
 struct EnergyVadOpts {
     Float32 threshold_in_db;
     Int32 transition_context;
@@ -145,54 +147,14 @@ private:
 
     std::queue<Bool> context_status_;
 };
+*/
 
-// Simple wrapper
+// Simple FeatureExtractor(mfcc/spectrogram/fbank)
 class FeatureExtractor {
 public:
-    FeatureExtractor(const std::string& conf, const std::string &type):
-                    computer_(NULL) { 
-        type_ = StringToFeatureType(type);
-        ConfigureParser parser(conf);
-        // initialize
-        SpectrogramOpts spectrogram_opts;
-        FbankOpts fbank_opts;
-        MfccOpts mfcc_opts;
-        switch (type_) {
-            case kSpectrogram:
-                LOG_INFO << "Create FeatureExtractor(Spectrogram)";
-                spectrogram_opts.ParseConfigure(&parser);
-                computer_ = new SpectrogramComputer(spectrogram_opts);
-                break;
-            case kFbank:
-                LOG_INFO << "Create FeatureExtractor(Fbank)";
-                fbank_opts.ParseConfigure(&parser);
-                computer_ = new FbankComputer(fbank_opts);
-                break;
-            case kMfcc:
-                LOG_INFO << "Create FeatureExtractor(Mfcc)";
-                mfcc_opts.ParseConfigure(&parser);
-                computer_ = new MfccComputer(mfcc_opts);
-                break;
-            case kUnkown:
-                LOG_FAIL << "Unknown feature type: " << type;
-                break;
-        }
-    }
+    FeatureExtractor(const std::string& conf, const std::string &type);
 
-    Int32 Compute(Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride) {
-        Int32 num_frames = -1;
-        switch (type_) {
-            case kSpectrogram:
-            case kFbank:
-            case kMfcc:
-                num_frames = ComputeFeature(computer_, signal, num_samps, addr, stride);
-                break;
-            case kUnkown:
-                LOG_FAIL << "Init FeatureExtractor with unknown feature type, stop compute";
-                break;
-        }
-        return num_frames;
-    }
+    Int32 Compute(Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
 
     void Reset() { computer_->Reset(); }
 
@@ -221,6 +183,7 @@ struct ContextOpts {
 };
 
 // Using vad, not well enough
+/*
 class OnlineExtractor {
 public:
     OnlineExtractor(const std::string &conf, const std::string &type, 
@@ -246,5 +209,6 @@ private:
     std::vector<Float32> speech_buffer_;
     std::vector<Bool> status_buffer_;
 };
+*/
 
 #endif

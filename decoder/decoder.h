@@ -2,6 +2,8 @@
 
 // From Kaldi's faster-decoder.{h,cc}
 
+#ifndef DECODER_H
+#define DECODER_H
 
 #include "decoder/common.h"
 #include "decoder/transition-table.h"
@@ -144,3 +146,5 @@ private:
     Int32 num_frames_decoded_;
     Bool reset_;
 };
+
+#endif

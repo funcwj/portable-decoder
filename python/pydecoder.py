@@ -2,9 +2,10 @@
 
 # wujian@2018
 
-from pydecoder import PyDecoder
+from _pydecoder import PyDecoder
+from _pydecoder import PyFeatureExtractor
 
-class OfflineDecoder(object):
+class UtteranceDecoder(object):
     def __init__(self,
                  graph="graph.fst",
                  table="trans.tab",

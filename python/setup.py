@@ -30,21 +30,22 @@ complie_args = [
 ]
 
 extensions = Extension(
-    "pydecoder",
+    "_pydecoder",
     language="c++",
     extra_compile_args=complie_args,
     include_dirs=include_dirs,
     library_dirs=library_dirs,
     libraries=depend_libs,
-    sources=["pydecoder.pyx"])
+    sources=["_pydecoder.pyx"])
 
 setup(
-    name="simple decoder",
+    name="pydecoder",
     version="0.1",
     license="Apache V2",
     keywords=["speech recognition", "decoder"],
     ext_modules=cythonize([extensions]),
+    py_modules=["pydecoder"],
     author="Jian Wu",
     author_email="funcwj@foxmail.com",
-    description="Python wrappers for mini-asr-decoder",
+    description="Python wrappers for kaldi's faster-decoder",
 )

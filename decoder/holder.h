@@ -2,6 +2,9 @@
 
 // A simple memory pool to hold frequent used objects, such as Tokens
 
+#ifndef HOLDER_H
+#define HOLDER_H
+
 #include <queue>
 #include <set>
 #include "decoder/common.h"
@@ -98,3 +101,4 @@ private:
     std::queue<T*> unused_;
 };
 
+#endif

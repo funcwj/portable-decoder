@@ -62,26 +62,28 @@ int main(int argc, char const *argv[]) {
     BinaryInput bo("posts.ref.ark");
     Int32 count = 0, num_frames, num_pdfs;
     std::string utt_id;
+    std::vector<Float32> loglikes;
     std::vector<Int32> word_ids;
-
+    
     while (true) {
         utt_id.clear();
         Bool go = ReadLoglikeInArchive(bo.Stream(), &utt_id, &num_frames, &num_pdfs);
         if (!go) break;
-        Float32 *loglikes = new Float32[num_frames * num_pdfs];
-        ReadBinary(bo.Stream(), reinterpret_cast<char*>(loglikes), sizeof(Float32) * num_frames * num_pdfs);
+        loglikes.resize(num_frames * num_pdfs);
+        // Float32 *loglikes = new Float32[num_frames * num_pdfs];
+        ReadBinary(bo.Stream(), reinterpret_cast<char*>(loglikes.data()), sizeof(Float32) * loglikes.size());
         Timer timer;
-        TestOfflineDecode(decoder, loglikes, num_frames, num_pdfs, &word_ids);
+        TestOfflineDecode(decoder, loglikes.data(), num_frames, num_pdfs, &word_ids);
         LOG_INFO << "Decode utterance(offline) " << utt_id << ": cost " << timer.Elapsed() << "s";
         for (Int32 i = 0; i < word_ids.size(); i++)
             std::cout << (i == 0 ? utt_id : "") << " " << word_ids[i] << (i == word_ids.size() - 1 ? "\n": "");
-        // timer.Reset();
-        // TestOnlineDecode(decoder, loglikes, num_frames, num_pdfs, &word_ids);
-        // LOG_INFO << "Decode utterance(online)  " << utt_id << ": cost " << timer.Elapsed() << "s";
-        // for (Int32 i = 0; i < word_ids.size(); i++)
-        //     std::cout << (i == 0 ? utt_id : "") << " " << word_ids[i] << (i == word_ids.size() - 1 ? "\n": "");
+        timer.Reset();
+        TestOnlineDecode(decoder, loglikes.data(), num_frames, num_pdfs, &word_ids);
+        LOG_INFO << "Decode utterance(online)  " << utt_id << ": cost " << timer.Elapsed() << "s";
+        for (Int32 i = 0; i < word_ids.size(); i++)
+            std::cout << (i == 0 ? utt_id : "") << " " << word_ids[i] << (i == word_ids.size() - 1 ? "\n": "");
         count++;
-        delete[] loglikes;
+        // delete[] loglikes;
     }
     return 0;
 }

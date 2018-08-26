@@ -1,5 +1,8 @@
 // wujian@2018
 
+#ifndef TRANSITION_TABEL_H
+#define TRANSITION_TABEL_H
+
 #include "decoder/common.h"
 
 // This class maintains relation between tid and pdfid
@@ -63,3 +66,5 @@ void ReadTransitionTable(const std::string &filename, TransitionTable *table) {
     ASSERT(table);
     table->Read(bi.Stream());
 }
+
+#endif
