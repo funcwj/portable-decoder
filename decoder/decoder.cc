@@ -7,15 +7,14 @@
 Bool debug_decoder = false;
 
 void FasterDecoder::Reset() {
-    if (reset_)
-        return;
+    num_frames_decoded_ = 0;
+    if (reset_) return;
     ClearToks(toks_.Clear());
     StateId start_state = fst_.Start();
     ASSERT(start_state != NoStateId);
     Arc dummy_arc(0, 0, 0, start_state);
     toks_.Insert(start_state, new Token(dummy_arc, NULL));
     ProcessNonemitting(std::numeric_limits<Float64>::max());
-    num_frames_decoded_ = 0;
     reset_ = true;
 }
 
@@ -173,6 +172,7 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
         toks_.Delete(e);
     }
     num_frames_decoded_++;
+    
     if (debug_decoder)
         LOG_INFO << "NumFrames/ActiveTokens: " << num_frames_decoded_  << "/"
                  << tok_cnt << "(" << weight_cutoff << "|" << next_weight_cutoff << ")";
@@ -245,6 +245,8 @@ Bool FasterDecoder::GetBestPath(std::vector<Int32> *word_sequence) {
     // word_sequence->clear();
     // std::vector<Int32>::iterator end_iter = word_sequence->end();
     Token *best_tok = NULL;
+    reset_ = false;
+    
     Bool is_final = ReachedFinal();
     if (!is_final) {
         for (const Elem *e = toks_.GetList(); e != NULL; e = e->tail)

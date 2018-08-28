@@ -24,7 +24,9 @@ void TestOfflineDecode(FasterDecoder &decoder, Float32 *loglikes, Int32 num_fram
     decoder.Decode(loglikes, num_frames, num_pdfs, num_pdfs);
     // for (Int32 t = 0; t < num_frames; t++)
     // decoder.DecodeFrame(loglikes + t * num_pdfs, num_pdfs);
-    ASSERT(decoder.NumDecodedFrames() == num_frames);
+    if (decoder.NumDecodedFrames() != num_frames) {
+        LOG_FAIL << "decoder.NumDecodedFrames() != num_frames, " << decoder.NumDecodedFrames() << " vs " << num_frames;
+    }
     decoder.GetBestPath(word_ids);
 }
 

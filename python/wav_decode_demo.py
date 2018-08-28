@@ -10,7 +10,7 @@ import argparse
 import numpy as np
 import torch as th
 
-from pydecoder import PyFeatureExtractor, UtteranceDecoder
+from pydecoder import PyFeatureExtractor, LogLikeDecoder
 
 from kaldi_helper.tdnn import TDNN
 from utils import WaveReader
@@ -37,7 +37,7 @@ def uttdecoder_demo(egs_scp):
     computer = PyFeatureExtractor(feature_kwargs["conf"],
                                   feature_kwargs["type"])
     # decoder instance
-    decoder = UtteranceDecoder(**decoder_kwargs)
+    decoder = LogLikeDecoder(**decoder_kwargs)
     # network instance
     tdnn = TDNN(**tdnn_kwargs)
 
