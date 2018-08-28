@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 
 # wujian@2018
+"""
+Simple TDNN networks, which load parameters from kaldi's nnet3 models.
 
+NOTE: This is a very simple program, which support BN/ReLU/Linear/Logsoftmax only, I
+      just want to validate if decoder works correctly.
+      Using copy-nnet3-linear-params to extract raw parameters in nnet3 model.
+
+"""
 import operator
 import os
 

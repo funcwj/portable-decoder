@@ -15,4 +15,5 @@ python/*.cpp
 python/*.wav
 python/asset
 python/__pycache__
-python/kaldi_helper/__pycache__
+python/example/__pycache__
+python/example/kaldi_helper/__pycache__
