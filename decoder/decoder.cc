@@ -4,8 +4,11 @@
 
 #include "decoder/decoder.h"
 
+Bool debug_decoder = false;
 
 void FasterDecoder::Reset() {
+    if (reset_)
+        return;
     ClearToks(toks_.Clear());
     StateId start_state = fst_.Start();
     ASSERT(start_state != NoStateId);
@@ -29,6 +32,8 @@ void FasterDecoder::DecodeFrame(Float32 *loglikes, Int32 num_pdfs) {
 }
 
 void FasterDecoder::Decode(Float32 *loglikes, Int32 num_frames, Int32 stride, Int32 num_pdfs) {
+    // check memory
+    ASSERT(num_pdfs <= stride);
     for (Int32 t = 0; t < num_frames; t++) {
         // LOG_INFO << "Decode frame " << t;
         DecodeFrame(loglikes + t * stride, num_pdfs);
@@ -103,7 +108,7 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
     Float32 adaptive_beam;
     Elem *best_elem = NULL;
     Float64 weight_cutoff = GetCutoff(last_toks, &tok_cnt, &adaptive_beam, &best_elem);
-    // LOG_INFO << tok_cnt << " tokens active.";
+    
     UInt64 new_sz = static_cast<UInt64>(static_cast<Float32>(tok_cnt) * 2);
     if (new_sz > toks_.Size())
         toks_.SetSize(new_sz);
@@ -131,7 +136,7 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
         if (tok->cost_ < weight_cutoff) {
             ASSERT(state == tok->arc_.nextstate);
             for (ArcIterator aiter(fst_, state); !aiter.Done(); aiter.Next()) {
-                Arc arc = aiter.Value();
+                const Arc &arc = aiter.Value();
                 if (arc.ilabel != 0) {
                     // minimum
                     // -loglikes[table_.TransitionIdToPdf(arc.ilabel)] * acoustic_scale_;
@@ -144,10 +149,17 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
                             next_weight_cutoff = new_weight + adaptive_beam;
                         if (e_found == NULL) {
                             toks_.Insert(arc.nextstate, new_tok);
+                            if (debug_decoder)
+                                std::cerr << "insert token(" << arc.nextstate << ", " << new_tok->cost_ << "="
+                                        << arc.weight << "+" << tok->cost_ << "+" << ac_cost
+                                        << "[" << arc.ilabel << "->" << table_.TransitionIdToPdf(arc.ilabel) << "])\n";
                         } else {
                             if ( e_found->val->cost_ > new_tok->cost_ ) {
                                 FreeToken(e_found->val);
                                 e_found->val = new_tok;
+                                if (debug_decoder)
+                                    std::cerr << "replace token(" << e_found->key << ", " << e_found->val->cost_ << ") with "
+                                              << "token(" << e_found->key << ", " << new_tok->cost_ << ")\n"; 
                             } else {
                                 FreeToken(new_tok);
                             }
@@ -161,6 +173,10 @@ Float64 FasterDecoder::ProcessEmitting(Float32 *loglikes, Int32 num_pdfs) {
         toks_.Delete(e);
     }
     num_frames_decoded_++;
+    if (debug_decoder)
+        LOG_INFO << "NumFrames/ActiveTokens: " << num_frames_decoded_  << "/"
+                 << tok_cnt << "(" << weight_cutoff << "|" << next_weight_cutoff << ")";
+
     return next_weight_cutoff;
 }
 
@@ -170,6 +186,7 @@ void FasterDecoder::ProcessNonemitting(Float64 cutoff) {
     for (const Elem *e = toks_.GetList(); e != NULL;  e = e->tail)
         queue_.push_back(e->key);
 
+    Int32 num_iter = 0;
     while (!queue_.empty()) {
         StateId state = queue_.back();
         queue_.pop_back();
@@ -178,6 +195,7 @@ void FasterDecoder::ProcessNonemitting(Float64 cutoff) {
             continue;
 
         ASSERT(tok != NULL && state == tok->arc_.nextstate);
+        // std::cerr << "Go: pop state(" << state << "), push state(";
         for (ArcIterator aiter(fst_, state); !aiter.Done(); aiter.Next()) {
             const Arc &arc = aiter.Value();
             if (arc.ilabel == 0) {
@@ -194,6 +212,7 @@ void FasterDecoder::ProcessNonemitting(Float64 cutoff) {
                             FreeToken(e_found->val);
                             e_found->val = new_tok;
                             queue_.push_back(arc.nextstate);
+                            // std::cerr << arc.nextstate << " ";
                         } else {
                             FreeToken(new_tok);
                         }
@@ -201,7 +220,11 @@ void FasterDecoder::ProcessNonemitting(Float64 cutoff) {
                 }
             }
         }
+        // std::cerr << ")" << std::endl;
+        num_iter++;
     }
+    if (debug_decoder)
+        LOG_INFO << "Go " << num_iter << " iterations";
 }
 
 
@@ -227,6 +250,9 @@ Bool FasterDecoder::GetBestPath(std::vector<Int32> *word_sequence) {
         for (const Elem *e = toks_.GetList(); e != NULL; e = e->tail)
             if (best_tok == NULL || best_tok->cost_ > e->val->cost_ )
                 best_tok = e->val;
+        if (debug_decoder)
+            LOG_INFO << "Log-like per frame is " << -best_tok->cost_ / num_frames_decoded_ 
+                     << " over " << num_frames_decoded_ << " frames[PARTIAL]";
     } else {
         Float64 best_cost = FLOAT64_INF;
         for (const Elem *e = toks_.GetList(); e != NULL; e = e->tail) {
@@ -236,6 +262,9 @@ Bool FasterDecoder::GetBestPath(std::vector<Int32> *word_sequence) {
                 best_tok = e->val;
             }
         }
+        if (debug_decoder)
+            LOG_INFO << "Log-like per frame is " << -best_cost / num_frames_decoded_ 
+                     << " over " << num_frames_decoded_ << " frames";
     }
     if (best_tok == NULL) 
         return false;

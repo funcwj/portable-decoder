@@ -35,7 +35,7 @@ void TestOnlineDecode(FasterDecoder &decoder, Float32 *loglikes, Int32 num_frame
     Int32 decode_frames = 0, num_chunks = 0;
     for (Int32 t = 0; t < num_frames; t++) {
         decoder.DecodeFrame(loglikes + t * num_pdfs, num_pdfs);
-        if (t % traceback_interval == 0) {
+        if ((t + 1) % traceback_interval == 0) {
             decoder.GetBestPath(word_ids);
             decode_frames += decoder.NumDecodedFrames(), num_chunks += 1;
             decoder.Reset();
@@ -62,28 +62,28 @@ int main(int argc, char const *argv[]) {
     BinaryInput bo("posts.ref.ark");
     Int32 count = 0, num_frames, num_pdfs;
     std::string utt_id;
-    std::vector<Float32> loglikes;
+    // std::vector<Float32> loglikes;
     std::vector<Int32> word_ids;
     
     while (true) {
         utt_id.clear();
         Bool go = ReadLoglikeInArchive(bo.Stream(), &utt_id, &num_frames, &num_pdfs);
         if (!go) break;
-        loglikes.resize(num_frames * num_pdfs);
-        // Float32 *loglikes = new Float32[num_frames * num_pdfs];
-        ReadBinary(bo.Stream(), reinterpret_cast<char*>(loglikes.data()), sizeof(Float32) * loglikes.size());
+        // loglikes.resize(num_frames * num_pdfs);
+        Float32 *loglikes = new Float32[num_frames * num_pdfs];
+        ReadBinary(bo.Stream(), reinterpret_cast<char*>(loglikes), sizeof(Float32) * num_frames * num_pdfs);
         Timer timer;
-        TestOfflineDecode(decoder, loglikes.data(), num_frames, num_pdfs, &word_ids);
+        TestOfflineDecode(decoder, loglikes, num_frames, num_pdfs, &word_ids);
         LOG_INFO << "Decode utterance(offline) " << utt_id << ": cost " << timer.Elapsed() << "s";
         for (Int32 i = 0; i < word_ids.size(); i++)
             std::cout << (i == 0 ? utt_id : "") << " " << word_ids[i] << (i == word_ids.size() - 1 ? "\n": "");
-        timer.Reset();
-        TestOnlineDecode(decoder, loglikes.data(), num_frames, num_pdfs, &word_ids);
-        LOG_INFO << "Decode utterance(online)  " << utt_id << ": cost " << timer.Elapsed() << "s";
-        for (Int32 i = 0; i < word_ids.size(); i++)
-            std::cout << (i == 0 ? utt_id : "") << " " << word_ids[i] << (i == word_ids.size() - 1 ? "\n": "");
+        // timer.Reset();
+        // TestOnlineDecode(decoder, loglikes.data(), num_frames, num_pdfs, &word_ids);
+        // LOG_INFO << "Decode utterance(online)  " << utt_id << ": cost " << timer.Elapsed() << "s";
+        // for (Int32 i = 0; i < word_ids.size(); i++)
+        //     std::cout << (i == 0 ? utt_id : "") << " " << word_ids[i] << (i == word_ids.size() - 1 ? "\n": "");
         count++;
-        // delete[] loglikes;
+        delete[] loglikes;
     }
     return 0;
 }

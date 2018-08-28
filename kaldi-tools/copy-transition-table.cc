@@ -36,7 +36,7 @@ int main(int argc, char const *argv[]) {
         int32 *table = new int32[num_tids];
         for (int32 tid = 0; tid < num_tids; tid++)
             // WriteBasicType(ko.Stream(), true, trans_model.TransitionIdToPdf(tid));
-            table[tid] = trans_model.TransitionIdToPdf(tid);
+            table[tid] = trans_model.TransitionIdToPdf(tid + 1);
         os.write(reinterpret_cast<const char*>(table), sizeof(int32) * num_tids);
         KALDI_LOG << "Copy from transition model with " << num_tids << " tids and " << num_pdfs << " pdfs done";
         delete[] table;

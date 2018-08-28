@@ -7,7 +7,7 @@ Demo: validate inference outputs
 
 import torch as th
 
-from kaldi_raw_tdnn.tdnn import TDNN
+from kaldi_helper.tdnn import TDNN
 from utils import ArchiveReader, ArchiveWriter
 
 def run_egs():

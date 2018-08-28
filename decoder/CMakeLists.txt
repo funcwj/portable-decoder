@@ -11,5 +11,5 @@ set(DECODER_SRC ${CMAKE_SOURCE_DIR}/decoder/io.cc
                 ${CMAKE_SOURCE_DIR}/decoder/decoder.cc)
 
 add_library(${DECODER_LIB} SHARED ${DECODER_SRC})
-add_library(${DECODER_LIB}_static STATIC ${DECODER_SRC})
-target_link_libraries(${DECODER_LIB})
+# add_library(${DECODER_LIB}_static STATIC ${DECODER_SRC})
+# target_link_libraries(${DECODER_LIB})
