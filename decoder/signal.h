@@ -1,3 +1,4 @@
+// decoder/signal.h
 // wujian@2018.8
 
 // Compute spectrogram/fbank/mfcc acoustic features according to Kaldi's logic with less dependency

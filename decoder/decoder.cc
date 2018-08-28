@@ -229,7 +229,8 @@ void FasterDecoder::ProcessNonemitting(Float64 cutoff) {
 
 
 inline Float32 FasterDecoder::NegativeLoglikelihood(Float32 *loglikes, Label tid) {
-    return -loglikes[table_.TransitionIdToPdf(tid)] * acoustic_scale_;
+    Int32 pdf_id = table_.TransitionIdToPdf(tid);
+    return -loglikes[pdf_id] * acoustic_scale_ + word_penalty_;
 }
 
 Bool FasterDecoder::ReachedFinal() {

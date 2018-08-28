@@ -11,5 +11,5 @@ python setup.py install
 # 2): on OsX
 # install_dir=$(pip show pydecoder | grep Location | awk '{print $2}')
 # install_name_tool -add_rpath ../lib $install_dir/_pydecoder.cpython-36m-darwin.so
-mv ../lib/libdecoder.* /usr/local/lib/
+cp ../lib/libdecoder.* /usr/local/lib/
 rm -rf build *.so *.cpp

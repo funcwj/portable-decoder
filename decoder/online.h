@@ -24,6 +24,29 @@ enum FeatureType {
 
 FeatureType StringToFeatureType(const std::string &type);
 
+// Simple FeatureExtractor(mfcc/spectrogram/fbank)
+class FeatureExtractor {
+public:
+    FeatureExtractor(const std::string& conf, const std::string &type);
+
+    Int32 Compute(Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
+
+    void Reset() { computer_->Reset(); }
+
+    Int32 FeatureDim() { return computer_->FeatureDim(); }
+
+    Int32 NumFrames(Int32 num_samps) { return computer_->NumFrames(num_samps); }
+
+    ~FeatureExtractor() {
+        if (computer_ != NULL)
+            delete computer_;
+    }
+
+private:
+    FeatureType type_;
+    Computer *computer_;
+};
+
 // EnergyVad: performed bad
 /*
 struct EnergyVadOpts {
@@ -148,39 +171,6 @@ private:
     std::queue<Bool> context_status_;
 };
 */
-
-// Simple FeatureExtractor(mfcc/spectrogram/fbank)
-class FeatureExtractor {
-public:
-    FeatureExtractor(const std::string& conf, const std::string &type);
-
-    Int32 Compute(Float32 *signal, Int32 num_samps, Float32 *addr, Int32 stride);
-
-    void Reset() { computer_->Reset(); }
-
-    Int32 FeatureDim() { return computer_->FeatureDim(); }
-
-    Int32 NumFrames(Int32 num_samps) { return computer_->NumFrames(num_samps); }
-
-    ~FeatureExtractor() {
-        if (computer_ != NULL)
-            delete computer_;
-    }
-
-private:
-    FeatureType type_;
-    Computer *computer_;
-};
-
-struct ContextOpts {
-    Int32 left_context, right_context;
-    std::string cmvn;
-
-    ContextOpts(Int32 left = 0, Int32 right = 0): left_context(left), right_context(right), cmvn("") { }
-    
-    ContextOpts(const ContextOpts &opts): left_context(opts.left_context), right_context(opts.right_context),
-                                        cmvn(opts.cmvn) { }
-};
 
 // Using vad, not well enough
 /*

@@ -2,7 +2,7 @@
 
 # wujian@2018
 """
-Demo: decoding from raw waveform
+Demo: almost same as loglike_decode_demo.py, while decoding from raw waveform
 """
 import os
 
@@ -52,7 +52,8 @@ def uttdecoder_demo(egs_scp):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Command to decode from raw waveform using inner configures")
+        description="Command to decode from raw waveform using inner configures"
+    )
     parser.add_argument(
         "wav_scp", type=str, help="Path of wav.scp for decoding")
     args = parser.parse_args()
