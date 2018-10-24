@@ -3,18 +3,17 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <sstream>
 #include <iostream>
-#include <algorithm>
+#include <sstream>
 #include <vector>
 
-#include "decoder/type.h"
-#include "decoder/math.h"
 #include "decoder/io.h"
 #include "decoder/logger.h"
+#include "decoder/math.h"
 #include "decoder/timer.h"
-
+#include "decoder/type.h"
 
 #endif

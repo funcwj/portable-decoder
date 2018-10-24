@@ -21,21 +21,13 @@ using UInt32 = uint32_t;
 using UInt64 = uint64_t;
 
 using Bool = bool;
-using Weight    = float;
-using Label     = int32_t;
-using StateId   = int32_t;
+using Weight = float;
+using Label = int32_t;
+using StateId = int32_t;
 
 const StateId NoStateId = -1;
 const char END_OF_STRING = '\0';
 
-enum WindowType {
-    kHann,
-    kHamm,
-    kRect,
-    kBlackMan,
-    kNone
-};
-
-
+enum WindowType { kHann, kHamm, kRect, kBlackMan, kNone };
 
 #endif

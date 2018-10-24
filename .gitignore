@@ -2,6 +2,7 @@
 .vscode/
 *.exe
 *.fst
+.clang-format
 build/
 bin/
 lib/
